@@ -7,6 +7,8 @@ import {
   SafeAreaView,
   Alert,
   Image,
+  TextInput,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +27,7 @@ const ENERGY_DECAY = 0.7; // Energy points lost per hour when awake
 const ENERGY_RECOVERY = 10; // Energy points gained per hour of sleep
 const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
+const WATER_GOAL = 15; // Daily water goal in cups
 
 export default function BuddyScreen() {
   // Get parameters from navigation
@@ -44,6 +47,15 @@ export default function BuddyScreen() {
   const [lastDrank, setLastDrank] = useState<Date>(new Date());
   const [isSleeping, setIsSleeping] = useState<boolean>(false);
   const [sleepStartTime, setSleepStartTime] = useState<Date | null>(null);
+
+  // New tracking states
+  const [totalSleepHours, setTotalSleepHours] = useState<number>(0);
+  const [waterConsumed, setWaterConsumed] = useState<number>(0);
+  const [lastSleepDate, setLastSleepDate] = useState<string>("");
+
+  // Water input modal
+  const [waterModalVisible, setWaterModalVisible] = useState<boolean>(false);
+  const [waterAmount, setWaterAmount] = useState<string>("1");
 
   // Camera and image processing states
   const [cameraVisible, setCameraVisible] = useState<boolean>(false);
@@ -85,7 +97,38 @@ export default function BuddyScreen() {
     lastDrank,
     isSleeping,
     sleepStartTime,
+    totalSleepHours,
+    waterConsumed,
+    lastSleepDate,
   ]);
+
+  // Reset water consumption at midnight
+  useEffect(() => {
+    const checkDayChange = () => {
+      const now = new Date();
+      const today = now.toDateString();
+
+      AsyncStorage.getItem(`last_active_day_${buddyName}`).then((lastDay) => {
+        if (lastDay && lastDay !== today) {
+          // It's a new day, reset water count
+          setWaterConsumed(0);
+        }
+
+        // Update the last active day
+        AsyncStorage.setItem(`last_active_day_${buddyName}`, today);
+      });
+    };
+
+    // Check immediately and then set an interval
+    checkDayChange();
+
+    // Set a timer to check for day change every hour
+    const dayChangeTimer = setInterval(checkDayChange, 3600000); // 1 hour
+
+    return () => {
+      clearInterval(dayChangeTimer);
+    };
+  }, [buddyName]);
 
   // Load buddy data from storage
   const loadBuddyData = async () => {
@@ -101,6 +144,9 @@ export default function BuddyScreen() {
         setSleepStartTime(
           data.sleepStartTime ? new Date(data.sleepStartTime) : null
         );
+        setTotalSleepHours(data.totalSleepHours || 0);
+        setWaterConsumed(data.waterConsumed || 0);
+        setLastSleepDate(data.lastSleepDate || "");
       }
     } catch (error) {
       console.error("Failed to load buddy data:", error);
@@ -117,6 +163,9 @@ export default function BuddyScreen() {
         lastDrank: lastDrank.toISOString(),
         isSleeping,
         sleepStartTime: sleepStartTime?.toISOString() || null,
+        totalSleepHours,
+        waterConsumed,
+        lastSleepDate,
       };
       await AsyncStorage.setItem(`buddy_${buddyName}`, JSON.stringify(data));
     } catch (error) {
@@ -202,9 +251,26 @@ export default function BuddyScreen() {
 
   // Handle giving water to buddy
   const handleDrink = () => {
+    setWaterModalVisible(true);
+  };
+
+  // Handle water modal submit
+  const handleWaterSubmit = () => {
+    const cups = parseInt(waterAmount, 10) || 1;
+
     setLastDrank(new Date());
-    setHealthLevel((prev) => Math.min(100, prev + 5));
-    Alert.alert("Refreshing!", `${buddyName} has had some water!`);
+    setHealthLevel((prev) => Math.min(100, prev + cups * 2)); // 2 HP per cup
+    setWaterConsumed((prev) => prev + cups);
+
+    Alert.alert(
+      "Refreshing!",
+      `${buddyName} has had ${cups} cup${
+        cups > 1 ? "s" : ""
+      } of water! That's ${waterConsumed + cups} cups today.`
+    );
+
+    setWaterModalVisible(false);
+    setWaterAmount("1");
   };
 
   // Handle sleep toggle
@@ -213,15 +279,35 @@ export default function BuddyScreen() {
       // Waking up
       if (sleepStartTime) {
         const now = new Date();
+        const today = now.toDateString();
+
+        // Calculate hours slept
         const hoursSlept =
           (now.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60);
+
+        // Add energy based on sleep time
         const energyGain = ENERGY_RECOVERY * hoursSlept;
         setEnergyLevel((prev) => Math.min(100, prev + energyGain));
+
+        // Track total sleep for the day
+        if (lastSleepDate !== today) {
+          // This is a new day's sleep
+          setTotalSleepHours(hoursSlept);
+          setLastSleepDate(today);
+        } else {
+          // Add to today's sleep (nap)
+          setTotalSleepHours((prev) => prev + hoursSlept);
+        }
+
+        // Alert user
         Alert.alert(
           "Good morning!",
-          `${buddyName} is now awake and refreshed!`
+          `${buddyName} slept for ${hoursSlept.toFixed(
+            1
+          )} hours and feels refreshed!`
         );
       }
+
       setIsSleeping(false);
       setSleepStartTime(null);
     } else {
@@ -340,6 +426,85 @@ export default function BuddyScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Tracking stats */}
+        <View style={styles.trackingContainer}>
+          {/* Sleep tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="bed-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {lastSleepDate === new Date().toDateString()
+                ? `Slept ${totalSleepHours.toFixed(1)} hours today`
+                : "No sleep recorded today"}
+            </Text>
+          </View>
+
+          {/* Water tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="water-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {`${waterConsumed} / ${WATER_GOAL} cups of water today`}
+            </Text>
+          </View>
+
+          {/* Water progress bar */}
+          <View style={styles.waterProgressContainer}>
+            <View style={styles.waterProgressBackground}>
+              <View
+                style={[
+                  styles.waterProgressFill,
+                  {
+                    width: `${Math.min(
+                      100,
+                      (waterConsumed / WATER_GOAL) * 100
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* Water Modal */}
+        <Modal
+          visible={waterModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setWaterModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>How many cups of water?</Text>
+
+              <TextInput
+                style={styles.modalInput}
+                keyboardType="number-pad"
+                value={waterAmount}
+                onChangeText={setWaterAmount}
+                maxLength={2}
+              />
+
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setWaterModalVisible(false);
+                    setWaterAmount("1");
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={handleWaterSubmit}
+                >
+                  <Text style={styles.modalButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -383,7 +548,7 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     width: "100%",
-    marginBottom: 40,
+    marginBottom: 30,
   },
   statusBarWrapper: {
     marginBottom: 16,
@@ -424,6 +589,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
+    marginBottom: 30,
   },
   actionButton: {
     backgroundColor: "#FFA000",
@@ -450,5 +616,93 @@ const styles = StyleSheet.create({
     height: 300,
     borderRadius: 20,
     marginBottom: 20,
+  },
+  // Tracking styles
+  trackingContainer: {
+    width: "100%",
+    backgroundColor: "#FFF3E0",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#FFE0B2",
+  },
+  trackingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  trackingText: {
+    fontSize: 16,
+    color: "#5D4037",
+    marginLeft: 10,
+  },
+  waterProgressContainer: {
+    marginTop: 5,
+  },
+  waterProgressBackground: {
+    height: 15,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  waterProgressFill: {
+    height: "100%",
+    backgroundColor: "#4FC3F7",
+    borderRadius: 10,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "80%",
+    backgroundColor: "#FFF8E1",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#FFA000",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#5D4037",
+    marginBottom: 20,
+  },
+  modalInput: {
+    backgroundColor: "white",
+    width: "50%",
+    height: 50,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#FFB74D",
+    fontSize: 20,
+    textAlign: "center",
+    color: "#5D4037",
+    marginBottom: 20,
+  },
+  modalButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+  },
+  modalButton: {
+    backgroundColor: "#FFA000",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  modalCancelButton: {
+    backgroundColor: "#E0E0E0",
+  },
+  modalButtonText: {
+    color: "#5D4037",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
