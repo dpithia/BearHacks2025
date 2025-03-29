@@ -14,8 +14,10 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as MediaLibrary from "expo-media-library";
+import { Pedometer } from "expo-sensors";
 import FoodCamera from "../../components/FoodCamera";
 import { FoodAnalyzer } from "../../services/FoodAnalyzer";
+import { useBuddyState } from "../../hooks/useBuddyState";
 
 // Constants for game mechanics
 const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
@@ -47,6 +49,7 @@ export default function BuddyScreen() {
   const [lastDrank, setLastDrank] = useState<Date>(new Date());
   const [isSleeping, setIsSleeping] = useState<boolean>(false);
   const [sleepStartTime, setSleepStartTime] = useState<Date | null>(null);
+  const { updateBuddyState } = useBuddyState();
 
   // New tracking states
   const [totalSleepHours, setTotalSleepHours] = useState<number>(0);
@@ -61,6 +64,11 @@ export default function BuddyScreen() {
   const [cameraVisible, setCameraVisible] = useState<boolean>(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [processingImage, setProcessingImage] = useState<boolean>(false);
+
+  // Step tracking state
+  const [isPedometerAvailable, setIsPedometerAvailable] = useState(false);
+  const [currentStepCount, setCurrentStepCount] = useState(0);
+  const [dailyStepGoal] = useState(10000); // Default daily step goal
 
   // Check for permissions on mount
   useEffect(() => {
@@ -129,6 +137,50 @@ export default function BuddyScreen() {
       clearInterval(dayChangeTimer);
     };
   }, [buddyName]);
+
+  // Initialize pedometer
+  useEffect(() => {
+    let subscription: any;
+
+    const initPedometer = async () => {
+      try {
+        const isAvailable = await Pedometer.isAvailableAsync();
+        setIsPedometerAvailable(isAvailable);
+
+        if (isAvailable) {
+          const end = new Date();
+          const start = new Date();
+          start.setHours(0, 0, 0, 0); // Start of today
+
+          const { steps: pastSteps } = await Pedometer.getStepCountAsync(
+            start,
+            end
+          );
+          setCurrentStepCount(pastSteps);
+
+          // Subscribe to pedometer updates
+          subscription = Pedometer.watchStepCount((result) => {
+            setCurrentStepCount((prevCount) => {
+              const newCount = prevCount + result.steps;
+              // Update buddy state with new step count
+              updateBuddyState({ steps: newCount });
+              return newCount;
+            });
+          });
+        }
+      } catch (error) {
+        console.error("Pedometer error:", error);
+      }
+    };
+
+    initPedometer();
+
+    return () => {
+      if (subscription) {
+        subscription.remove();
+      }
+    };
+  }, []);
 
   // Load buddy data from storage
   const loadBuddyData = async () => {
@@ -429,6 +481,35 @@ export default function BuddyScreen() {
 
         {/* Tracking stats */}
         <View style={styles.trackingContainer}>
+          {/* Step tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {isPedometerAvailable
+                ? `${currentStepCount} / ${dailyStepGoal} steps today`
+                : "Pedometer not available"}
+            </Text>
+          </View>
+
+          {/* Step progress bar */}
+          {isPedometerAvailable && (
+            <View style={styles.stepProgressContainer}>
+              <View style={styles.stepProgressBackground}>
+                <View
+                  style={[
+                    styles.stepProgressFill,
+                    {
+                      width: `${Math.min(
+                        100,
+                        (currentStepCount / dailyStepGoal) * 100
+                      )}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+
           {/* Sleep tracking */}
           <View style={styles.trackingItem}>
             <Ionicons name="bed-outline" size={24} color="#5D4037" />
@@ -704,5 +785,20 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  stepProgressContainer: {
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  stepProgressBackground: {
+    height: 15,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  stepProgressFill: {
+    height: "100%",
+    backgroundColor: "#81C784",
+    borderRadius: 10,
   },
 });

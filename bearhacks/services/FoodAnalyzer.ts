@@ -1,8 +1,12 @@
 import * as FileSystem from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
 
-export interface FoodAnalysisResult {
+// TODO: Replace with actual API key
+const VISION_API_KEY = "";
+
+interface FoodAnalysisResult {
   isHealthy: boolean;
+  description: string;
 }
 
 /**
@@ -17,22 +21,17 @@ export class FoodAnalyzer {
    */
   static async analyzeImage(imageUri: string): Promise<FoodAnalysisResult> {
     try {
-      // Save the image for future potential training data
-      await FoodAnalyzer.saveImageForTraining(imageUri);
-
-      // Save to photo library for user reference
-      await MediaLibrary.saveToLibraryAsync(imageUri);
-
-      // This is a placeholder for the ML model
-      // In the future, this will be replaced with TensorFlow analysis
-
-      // PLACEHOLDER - Replace with actual TensorFlow model in future
-      const isHealthy = Math.random() > 0.5; // Random result for demonstration
-
-      return { isHealthy };
+      // For now, return random result since we don't have API key
+      const isHealthy = Math.random() > 0.5;
+      return {
+        isHealthy,
+        description: isHealthy
+          ? "Healthy food detected!"
+          : "Looks like a treat!",
+      };
     } catch (error) {
       console.error("Error analyzing food image:", error);
-      return { isHealthy: false };
+      throw error;
     }
   }
 

@@ -1,109 +1,216 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
+import { supabase } from "../../services/supabase";
+import { useFonts } from "expo-font";
+import { Ionicons } from "@expo/vector-icons";
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+interface BuddyListItem {
+  id: string;
+  name: string;
+  image_url: string;
+  user_id: string;
+  hp: number;
+  energy: number;
+  is_sleeping: boolean;
+  user_email?: string;
+}
 
-export default function TabTwoScreen() {
+export default function SocialScreen() {
+  const [buddies, setBuddies] = useState<BuddyListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [fontsLoaded] = useFonts({
+    Minecraft: require("../../assets/fonts/Minecraft.ttf"),
+  });
+
+  const fetchBuddies = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: buddyData, error } = await supabase
+        .from("buddies")
+        .select("*, profiles(email)")
+        .neq("user_id", user.id); // Exclude current user's buddy
+
+      if (error) throw error;
+
+      const formattedBuddies = buddyData.map((buddy: any) => ({
+        ...buddy,
+        user_email: buddy.profiles?.email,
+      }));
+
+      setBuddies(formattedBuddies);
+    } catch (error) {
+      console.error("Error fetching buddies:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBuddies();
+  }, []);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchBuddies();
+  }, []);
+
+  if (!fontsLoaded) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#66B288" />
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#66B288" />
+      </View>
+    );
+  }
+
+  const renderBuddyItem = ({ item }: { item: BuddyListItem }) => (
+    <View style={styles.buddyCard}>
+      <View style={styles.buddyHeader}>
+        <Text style={styles.buddyName}>{item.name}</Text>
+        <Text style={styles.ownerEmail}>
+          {item.user_email || "Unknown User"}
+        </Text>
+      </View>
+
+      <View style={styles.buddyImageContainer}>
+        <Text style={styles.buddyEmoji}>
+          {item.is_sleeping ? "💤" : item.image_url}
+        </Text>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <View style={styles.statItem}>
+          <Ionicons name="heart" size={20} color="#FF5252" />
+          <Text style={styles.statText}>{Math.round(item.hp)}%</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Ionicons name="flash" size={20} color="#FFD600" />
+          <Text style={styles.statText}>{Math.round(item.energy)}%</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.title}>OTHER BUDDIES</Text>
+      <FlatList
+        data={buddies}
+        renderItem={renderBuddyItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No other buddies found</Text>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: "#66B288",
+    paddingTop: 60,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#66B288",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#000000",
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: "Minecraft",
+  },
+  listContainer: {
+    padding: 16,
+  },
+  buddyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 4,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#000000",
+  },
+  buddyHeader: {
+    marginBottom: 12,
+  },
+  buddyName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000000",
+    fontFamily: "Minecraft",
+  },
+  ownerEmail: {
+    fontSize: 14,
+    color: "#666666",
+    marginTop: 4,
+    fontFamily: "Minecraft",
+  },
+  buddyImageContainer: {
+    width: 100,
+    height: 100,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#000000",
+  },
+  buddyEmoji: {
+    fontSize: 50,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#000000",
+    fontFamily: "Minecraft",
+  },
+  emptyText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#000000",
+    fontFamily: "Minecraft",
   },
 });
