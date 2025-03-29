@@ -45,34 +45,65 @@ export class NutritionAnalyzer {
               {
                 role: "system",
                 content:
-                  "You are a professional nutritionist analyzing eating patterns. Provide specific, actionable insights.",
+                  "Be precise and concise. You are a nutritionist analyzing eating patterns. Return your analysis as a valid JSON object with the exact structure: {summary: string, recommendations: string[], nutritionalBalance: {protein: number, carbs: number, fats: number}, healthScore: number, concerns: string[]}. Do not include any markdown formatting, comments, or explanatory text.",
               },
               {
                 role: "user",
                 content: prompt,
               },
             ],
-            max_tokens: 1024,
+            temperature: 0.2,
+            top_p: 0.9,
+            max_tokens: 1000,
+            stream: false,
           }),
         }
       );
 
+      const rawResponse = await response.text();
+      console.log("Raw API Response:", rawResponse);
+
       if (!response.ok) {
-        const errorData = await response.text();
         console.error("Perplexity API Error:", {
           status: response.status,
           statusText: response.statusText,
-          error: errorData,
+          response: rawResponse,
         });
-        throw new Error(`API request failed: ${errorData}`);
+        throw new Error(`API request failed: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      // Try to parse the response as JSON
+      let data;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch (e) {
+        console.error("Failed to parse API response as JSON:", e);
+        console.log("Raw response that failed to parse:", rawResponse);
+        throw new Error("Invalid JSON response from API");
+      }
+
       if (!data.choices?.[0]?.message?.content) {
+        console.error("Unexpected API response structure:", data);
         throw new Error("Invalid API response format");
       }
 
-      return this.parseResponse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+
+      // Remove any markdown code blocks and comments
+      const cleanContent = content
+        .replace(/```json\n?|\n?```/g, "") // Remove markdown code blocks
+        .replace(/\/\/.*$/gm, "") // Remove single-line comments
+        .replace(/\/\*[\s\S]*?\*\//g, ""); // Remove multi-line comments
+
+      console.log("Cleaned Content:", cleanContent);
+
+      try {
+        const parsedContent = JSON.parse(cleanContent);
+        return this.validateAndNormalizeInsight(parsedContent);
+      } catch (e) {
+        console.error("Failed to parse cleaned content:", e);
+        throw new Error("Failed to parse API response content");
+      }
     } catch (error) {
       console.error("Error analyzing nutrition pattern:", error);
       return this.getMockInsight(entries);
@@ -86,36 +117,46 @@ export class NutritionAnalyzer {
         isHealthy: entry.isHealthy,
         time: new Date(entry.timestamp).toLocaleTimeString(),
       }))
-      .slice(0, 10); // Limit to last 10 entries
+      .slice(0, 10);
 
-    return `Analyze these recent meals and provide nutritional insights in JSON format:
-${JSON.stringify(foodList, null, 2)}
-
-Return a JSON object with:
+    return `Analyze these recent meals and provide nutritional insights. Return a JSON object without any comments or markdown formatting that includes:
 {
   "summary": "Brief analysis of eating patterns",
   "recommendations": ["2-3 specific, actionable recommendations"],
   "nutritionalBalance": {"protein": number, "carbs": number, "fats": number},
   "healthScore": number from 0-100,
   "concerns": ["any nutritional concerns"]
-}`;
+}
+
+The meals to analyze are:
+${JSON.stringify(foodList, null, 2)}`;
   }
 
   private static parseResponse(response: string): NutritionInsight {
     try {
-      // Try direct parsing first
+      // First try to parse the entire response
       try {
-        const parsed = JSON.parse(response);
-        return this.validateAndNormalizeInsight(parsed);
+        return this.validateAndNormalizeInsight(JSON.parse(response));
       } catch (e) {
-        // If direct parsing fails, try to extract JSON from the response
-        const jsonMatch = response.match(/\{[\s\S]*?\}/); // Non-greedy match
-        if (!jsonMatch) {
-          console.error("Raw response:", response);
-          throw new Error("No JSON found in response");
+        console.log("Failed to parse entire response, trying to extract JSON");
+        // Look for JSON-like structure
+        const matches = response.match(/\{[\s\S]*\}/g);
+        if (!matches) {
+          throw new Error("No JSON object found in response");
         }
-        const parsed = JSON.parse(jsonMatch[0]);
-        return this.validateAndNormalizeInsight(parsed);
+
+        // Try each match until we find valid JSON
+        for (const match of matches) {
+          try {
+            const parsed = JSON.parse(match);
+            if (parsed && typeof parsed === "object") {
+              return this.validateAndNormalizeInsight(parsed);
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        throw new Error("No valid JSON found in response");
       }
     } catch (error) {
       console.error("Error parsing nutrition analysis:", error);
