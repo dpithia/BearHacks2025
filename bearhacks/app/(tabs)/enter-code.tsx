@@ -47,7 +47,7 @@ export default function EnterCodeScreen() {
       // Find the friend code
       const { data: codeData, error: codeError } = await supabase
         .from("friend_codes")
-        .select("user_id, used")
+        .select("user_id, used, expires_at")
         .eq("code", code.trim().toUpperCase())
         .single();
 
@@ -58,6 +58,13 @@ export default function EnterCodeScreen() {
 
       if (codeData.used) {
         Alert.alert("Error", "This friend code has already been used");
+        return;
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(codeData.expires_at);
+      if (now > expiresAt) {
+        Alert.alert("Error", "This friend code has expired");
         return;
       }
 

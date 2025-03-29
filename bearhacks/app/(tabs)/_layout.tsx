@@ -18,7 +18,7 @@ export default function TabLayout() {
       }
     };
     checkBuddy();
-  }, [pathname]);
+  }, [pathname, router]);
 
   return (
     <Tabs
@@ -64,6 +64,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="enter-code"
         options={{
+          title: "Enter Code",
           tabBarStyle: { display: "none" },
         }}
       />
