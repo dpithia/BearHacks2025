@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Pressable,
 } from "react-native";
+import { useRouter } from "expo-router";
 import SplashScreen from "../../components/SplashScreen";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [buddyName, setBuddyName] = useState<string>("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
@@ -66,7 +68,19 @@ export default function HomeScreen() {
       </View>
 
       {/* Create Button */}
-      <TouchableOpacity style={styles.createButton}>
+      <TouchableOpacity
+        style={[
+          styles.createButton,
+          (!buddyName || !selectedEmoji) && styles.disabledButton,
+        ]}
+        disabled={!buddyName || !selectedEmoji}
+        onPress={() => {
+          router.push({
+            pathname: "/(tabs)/buddy" as any,
+            params: { name: buddyName, emoji: selectedEmoji || "" },
+          });
+        }}
+      >
         <Text style={styles.createButtonText}>Create</Text>
       </TouchableOpacity>
     </View>
@@ -136,5 +150,10 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  disabledButton: {
+    backgroundColor: "#E0E0E0",
+    borderColor: "#BDBDBD",
+    opacity: 0.7,
   },
 });
