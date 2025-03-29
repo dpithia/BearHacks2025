@@ -11,7 +11,6 @@ import { useRouter } from "expo-router";
 import SplashScreen from "../../components/SplashScreen";
 import { saveBuddyState } from "../../services/buddyService";
 import { useBuddyState } from "../../hooks/useBuddyState";
-import { useFonts } from "expo-font";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,10 +19,6 @@ export default function HomeScreen() {
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const { buddyState, isLoading: isBuddyLoading } = useBuddyState();
-
-  const [fontsLoaded] = useFonts({
-    Minecraft: require("../../assets/fonts/Minecraft.ttf"),
-  });
 
   // Emoji options
   const emojiOptions = ["🐻", "🐼", "🐨", "🦊"];
@@ -37,8 +32,8 @@ export default function HomeScreen() {
   }, [isBuddyLoading, buddyState, router]);
 
   // Show loading state
-  if (isLoading || isBuddyLoading || !fontsLoaded) {
-    return <SplashScreen appName="BearBuddy" />;
+  if (isLoading || isBuddyLoading) {
+    return <SplashScreen />;
   }
 
   // If buddy exists, don't show creation screen
@@ -94,19 +89,18 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>CREATE YOUR BUDDY</Text>
+      <Text style={styles.title}>Create Your Buddy</Text>
 
       {/* Name input */}
       <TextInput
         style={styles.input}
-        placeholder="ENTER BUDDY NAME"
-        placeholderTextColor="#9E9E9E"
+        placeholder="Enter buddy name"
+        placeholderTextColor="#A1887F"
         value={buddyName}
         onChangeText={setBuddyName}
-        maxLength={12}
       />
 
-      {/* Emoji Grid */}
+      {/* 2x2 Emoji Grid */}
       <View style={styles.emojiGrid}>
         {emojiOptions.map((emoji, index) => (
           <TouchableOpacity
@@ -132,7 +126,7 @@ export default function HomeScreen() {
         onPress={handleCreateBuddy}
       >
         <Text style={styles.createButtonText}>
-          {isCreating ? "CREATING..." : "CREATE"}
+          {isCreating ? "Creating..." : "Create"}
         </Text>
       </TouchableOpacity>
     </View>
@@ -142,69 +136,70 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#66B288",
+    backgroundColor: "#FFF8E1",
     alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
+    paddingTop: 200,
+    paddingHorizontal: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
-    color: "#000000",
-    marginBottom: 24,
-    fontFamily: "Minecraft",
+    color: "#5D4037",
+    marginBottom: 30,
   },
   input: {
     width: "100%",
-    height: 40,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "white",
     borderWidth: 2,
-    borderColor: "#000000",
-    marginBottom: 24,
-    padding: 8,
-    fontFamily: "Minecraft",
-    fontSize: 14,
-    color: "#000000",
+    borderColor: "#FF8F00",
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    color: "#5D4037",
+    marginBottom: 30,
   },
   emojiGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 24,
+    justifyContent: "center",
     width: "100%",
+    marginBottom: 40,
   },
   emojiContainer: {
-    width: "48%",
+    width: "45%",
     aspectRatio: 1,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 2,
-    borderColor: "#000000",
+    backgroundColor: "#FFD54F",
+    margin: "2.5%",
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: "#FFA000",
   },
   selectedEmojiContainer: {
-    backgroundColor: "#E8E8E8",
+    backgroundColor: "#FFA000",
+    borderColor: "#FF6F00",
+    transform: [{ scale: 1.05 }],
   },
   emoji: {
-    fontSize: 40,
+    fontSize: 60,
   },
   createButton: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFA000",
+    paddingVertical: 14,
+    paddingHorizontal: 50,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#000000",
-    justifyContent: "center",
-    alignItems: "center",
+    borderColor: "#FF8F00",
   },
   createButtonText: {
-    color: "#000000",
+    color: "#5D4037",
     fontSize: 18,
-    fontFamily: "Minecraft",
     fontWeight: "bold",
   },
   disabledButton: {
-    opacity: 0.5,
+    backgroundColor: "#E0E0E0",
+    borderColor: "#BDBDBD",
+    opacity: 0.7,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -9,15 +9,18 @@ import {
   Image,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as MediaLibrary from "expo-media-library";
 import { Pedometer } from "expo-sensors";
 import FoodCamera from "../../components/FoodCamera";
 import { FoodAnalyzer } from "../../services/FoodAnalyzer";
 import { useBuddyState } from "../../hooks/useBuddyState";
+import SplashScreen from "../../components/SplashScreen";
+import { supabase } from "../../services/supabase";
+import { useFoodEntryStore } from "../../stores/foodEntryStore";
 
 // Constants for game mechanics
 const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
@@ -31,646 +34,666 @@ const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
 const WATER_GOAL = 15; // Daily water goal in cups
 
+// Add new constants for step tracking and rewards
+const STEP_REWARD_THRESHOLD = 1000; // Reward HP every 1000 steps
+const STEP_REWARD_HP = 5; // HP points awarded per step threshold
+const MAX_DAILY_STEP_REWARDS = 50; // Maximum HP from steps per day
+
+// Debounce utility function
+const debounce = (func: Function, wait: number) => {
+  let timeout: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+};
+
+// Add new UI components
+const ProgressBar = ({
+  value,
+  maxValue,
+  color,
+}: {
+  value: number;
+  maxValue: number;
+  color: string;
+}) => (
+  <View style={styles.progressBarContainer}>
+    <View
+      style={[
+        styles.progressBarFill,
+        {
+          width: `${(value / maxValue) * 100}%`,
+          backgroundColor: color,
+        },
+      ]}
+    />
+  </View>
+);
+
+const StatDisplay = ({
+  label,
+  value,
+  maxValue,
+  color,
+  icon,
+}: {
+  label: string;
+  value: number;
+  maxValue: number;
+  color: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}) => (
+  <View style={styles.statContainer}>
+    <View style={styles.statHeader}>
+      <Ionicons name={icon} size={20} color={color} />
+      <Text style={[styles.statLabel, { color }]}>{label}</Text>
+    </View>
+    <ProgressBar value={value} maxValue={maxValue} color={color} />
+    <Text style={[styles.statValue, { color }]}>
+      {Math.round(value)}/{maxValue}
+    </Text>
+  </View>
+);
+
 export default function BuddyScreen() {
-  // Get parameters from navigation
-  const { name, emoji } = useLocalSearchParams<{
-    name: string;
-    emoji: string;
-  }>();
+  const { buddyState, isLoading, updateBuddyState } = useBuddyState();
+  const router = useRouter();
+  const addFoodEntry = useFoodEntryStore((state) => state.addEntry);
 
-  // Default values if parameters are not provided
-  const buddyName = name || "Buddy";
-  const buddyEmoji = emoji || "🐻";
+  // Add loading states
+  const [isUpdatingStats, setIsUpdatingStats] = useState(false);
+  const [isTogglingState, setIsTogglingState] = useState(false);
 
-  // State for buddy status
-  const [healthLevel, setHealthLevel] = useState<number>(100);
-  const [energyLevel, setEnergyLevel] = useState<number>(100);
-  const [lastFed, setLastFed] = useState<Date>(new Date());
-  const [lastDrank, setLastDrank] = useState<Date>(new Date());
-  const [isSleeping, setIsSleeping] = useState<boolean>(false);
-  const [sleepStartTime, setSleepStartTime] = useState<Date | null>(null);
-  const { updateBuddyState } = useBuddyState();
+  // Move all useState hooks to the top
+  const [cameraVisible, setCameraVisible] = React.useState<boolean>(false);
+  const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
+  const [processingImage, setProcessingImage] = React.useState<boolean>(false);
+  const [waterModalVisible, setWaterModalVisible] =
+    React.useState<boolean>(false);
+  const [waterAmount, setWaterAmount] = React.useState<string>("1");
+  const [isPedometerAvailable, setIsPedometerAvailable] =
+    React.useState<boolean>(false);
+  const [currentStepCount, setCurrentStepCount] = React.useState<number>(0);
+  const [dailyStepGoal] = React.useState<number>(10000);
 
-  // New tracking states
-  const [totalSleepHours, setTotalSleepHours] = useState<number>(0);
-  const [waterConsumed, setWaterConsumed] = useState<number>(0);
-  const [lastSleepDate, setLastSleepDate] = useState<string>("");
-
-  // Water input modal
-  const [waterModalVisible, setWaterModalVisible] = useState<boolean>(false);
-  const [waterAmount, setWaterAmount] = useState<string>("1");
-
-  // Camera and image processing states
-  const [cameraVisible, setCameraVisible] = useState<boolean>(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [processingImage, setProcessingImage] = useState<boolean>(false);
-
-  // Step tracking state
-  const [isPedometerAvailable, setIsPedometerAvailable] = useState(false);
-  const [currentStepCount, setCurrentStepCount] = useState(0);
-  const [dailyStepGoal] = useState(10000); // Default daily step goal
-
-  // Check for permissions on mount
-  useEffect(() => {
-    (async () => {
-      await MediaLibrary.requestPermissionsAsync();
-    })();
-  }, []);
-
-  // Ref for timer
+  // Timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize or load saved data
-  useEffect(() => {
-    loadBuddyData();
+  // Add new state for tracking initial load
+  const [hasInitializedStats, setHasInitializedStats] = useState(false);
 
-    // Start the interval to update stats
-    timerRef.current = setInterval(updateBuddyStats, 60000); // Update every minute
+  // Add new state variables
+  const [lastStepReward, setLastStepReward] = useState<number>(0);
+  const [stepRewardsGiven, setStepRewardsGiven] = useState<number>(0);
+  const [sleepTransitioning, setSleepTransitioning] = useState<boolean>(false);
+  const [showStepReward, setShowStepReward] = useState<boolean>(false);
 
-    // Clean up on unmount
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
-
-  // Effect to save data whenever stats change
-  useEffect(() => {
-    saveBuddyData();
-  }, [
-    healthLevel,
-    energyLevel,
-    lastFed,
-    lastDrank,
-    isSleeping,
-    sleepStartTime,
-    totalSleepHours,
-    waterConsumed,
-    lastSleepDate,
-  ]);
-
-  // Reset water consumption at midnight
-  useEffect(() => {
-    const checkDayChange = () => {
-      const now = new Date();
-      const today = now.toDateString();
-
-      AsyncStorage.getItem(`last_active_day_${buddyName}`).then((lastDay) => {
-        if (lastDay && lastDay !== today) {
-          // It's a new day, reset water count
-          setWaterConsumed(0);
-        }
-
-        // Update the last active day
-        AsyncStorage.setItem(`last_active_day_${buddyName}`, today);
-      });
-    };
-
-    // Check immediately and then set an interval
-    checkDayChange();
-
-    // Set a timer to check for day change every hour
-    const dayChangeTimer = setInterval(checkDayChange, 3600000); // 1 hour
-
-    return () => {
-      clearInterval(dayChangeTimer);
-    };
-  }, [buddyName]);
-
-  // Initialize pedometer
-  useEffect(() => {
-    let subscription: any;
-
-    const initPedometer = async () => {
+  // Debounced update function
+  const debouncedUpdateStats = useCallback(
+    debounce(async (updates: any) => {
       try {
-        const isAvailable = await Pedometer.isAvailableAsync();
-        setIsPedometerAvailable(isAvailable);
-
-        if (isAvailable) {
-          const end = new Date();
-          const start = new Date();
-          start.setHours(0, 0, 0, 0); // Start of today
-
-          const { steps: pastSteps } = await Pedometer.getStepCountAsync(
-            start,
-            end
-          );
-          setCurrentStepCount(pastSteps);
-
-          // Subscribe to pedometer updates
-          subscription = Pedometer.watchStepCount((result) => {
-            setCurrentStepCount((prevCount) => {
-              const newCount = prevCount + result.steps;
-              // Update buddy state with new step count
-              updateBuddyState({ steps: newCount });
-              return newCount;
-            });
-          });
-        }
+        await updateBuddyState(updates);
       } catch (error) {
-        console.error("Pedometer error:", error);
+        console.error("Error updating buddy stats:", error);
       }
-    };
+    }, 1000),
+    [updateBuddyState]
+  );
 
-    initPedometer();
+  // Modify updateBuddyStats to be more efficient
+  const updateBuddyStats = useCallback(
+    async (force = false) => {
+      if (!buddyState || isUpdatingStats || (!force && hasInitializedStats))
+        return;
 
-    return () => {
-      if (subscription) {
-        subscription.remove();
-      }
-    };
-  }, []);
+      try {
+        setIsUpdatingStats(true);
+        const now = new Date();
+        const lastUpdated = new Date(buddyState.lastUpdated);
 
-  // Load buddy data from storage
-  const loadBuddyData = async () => {
-    try {
-      const dataString = await AsyncStorage.getItem(`buddy_${buddyName}`);
-      if (dataString) {
-        const data = JSON.parse(dataString);
-        setHealthLevel(data.healthLevel);
-        setEnergyLevel(data.energyLevel);
-        setLastFed(new Date(data.lastFed));
-        setLastDrank(new Date(data.lastDrank));
-        setIsSleeping(data.isSleeping);
-        setSleepStartTime(
-          data.sleepStartTime ? new Date(data.sleepStartTime) : null
+        // Check if it's a new day for water reset
+        const isNewDay = now.toDateString() !== lastUpdated.toDateString();
+
+        // Calculate hours since last update
+        const hoursSinceUpdate =
+          (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+        // Skip update if less than a minute has passed (unless forced)
+        if (!force && hoursSinceUpdate < 0.016) {
+          return;
+        }
+
+        // Determine HP decay rate
+        let hpDecayRate = NORMAL_HP_DECAY;
+        if (hoursSinceUpdate > HUNGRY_THRESHOLD) {
+          hpDecayRate += HUNGRY_HP_DECAY;
+        }
+        if (hoursSinceUpdate > THIRSTY_THRESHOLD) {
+          hpDecayRate += THIRSTY_HP_DECAY;
+        }
+
+        // Calculate all updates before making any changes
+        const hpLoss = Math.round(hpDecayRate * hoursSinceUpdate);
+        const energyChange = Math.round(
+          buddyState.isSleeping
+            ? ENERGY_RECOVERY * hoursSinceUpdate
+            : -ENERGY_DECAY * hoursSinceUpdate
         );
-        setTotalSleepHours(data.totalSleepHours || 0);
-        setWaterConsumed(data.waterConsumed || 0);
-        setLastSleepDate(data.lastSleepDate || "");
+
+        const updates = {
+          hp: Math.max(0, Math.round(buddyState.hp - hpLoss)),
+          energy: Math.max(
+            0,
+            Math.min(100, Math.round(buddyState.energy + energyChange))
+          ),
+          waterConsumed: isNewDay ? 0 : buddyState.waterConsumed,
+          lastUpdated: now.toISOString(),
+        };
+
+        // Only update if values have actually changed
+        if (
+          updates.hp !== buddyState.hp ||
+          updates.energy !== buddyState.energy ||
+          updates.waterConsumed !== buddyState.waterConsumed ||
+          isNewDay
+        ) {
+          await updateBuddyState(updates);
+
+          // Check for critical stats after update
+          if (updates.hp <= 20 || updates.energy <= 20) {
+            const alerts = [];
+            if (updates.hp <= 20) {
+              alerts.push(
+                `${buddyState.name}'s HP is getting low. Time for some food!`
+              );
+            }
+            if (updates.energy <= 20) {
+              alerts.push(
+                `${buddyState.name}'s energy is low. They should get some sleep!`
+              );
+            }
+            if (alerts.length > 0) {
+              Alert.alert("Your buddy needs attention!", alerts.join("\n"));
+            }
+          }
+        }
+
+        if (!hasInitializedStats) {
+          setHasInitializedStats(true);
+        }
+      } finally {
+        setIsUpdatingStats(false);
       }
-    } catch (error) {
-      console.error("Failed to load buddy data:", error);
-    }
-  };
+    },
+    [buddyState, isUpdatingStats, hasInitializedStats, updateBuddyState]
+  );
 
-  // Save buddy data to storage
-  const saveBuddyData = async () => {
-    try {
-      const data = {
-        healthLevel,
-        energyLevel,
-        lastFed: lastFed.toISOString(),
-        lastDrank: lastDrank.toISOString(),
-        isSleeping,
-        sleepStartTime: sleepStartTime?.toISOString() || null,
-        totalSleepHours,
-        waterConsumed,
-        lastSleepDate,
-      };
-      await AsyncStorage.setItem(`buddy_${buddyName}`, JSON.stringify(data));
-    } catch (error) {
-      console.error("Failed to save buddy data:", error);
-    }
-  };
-
-  // Update buddy stats based on time
-  const updateBuddyStats = () => {
-    const now = new Date();
-
-    // Calculate hours since last actions
-    const hoursSinceLastFed =
-      (now.getTime() - lastFed.getTime()) / (1000 * 60 * 60);
-    const hoursSinceLastDrank =
-      (now.getTime() - lastDrank.getTime()) / (1000 * 60 * 60);
-
-    // Determine HP decay rate
-    let hpDecayRate = NORMAL_HP_DECAY;
-    if (hoursSinceLastFed > HUNGRY_THRESHOLD) {
-      hpDecayRate += HUNGRY_HP_DECAY;
-    }
-    if (hoursSinceLastDrank > THIRSTY_THRESHOLD) {
-      hpDecayRate += THIRSTY_HP_DECAY;
-    }
-
-    // Update HP
-    const hoursSinceLastUpdate = 1 / 60; // 1 minute in hours
-    const hpLoss = hpDecayRate * hoursSinceLastUpdate;
-    setHealthLevel((prev) => Math.max(0, prev - hpLoss));
-
-    // Update energy based on sleep status
-    if (isSleeping && sleepStartTime) {
-      // Energy increases while sleeping
-      const energyGain = ENERGY_RECOVERY * hoursSinceLastUpdate;
-      setEnergyLevel((prev) => Math.min(100, prev + energyGain));
-    } else {
-      // Energy decreases while awake
-      const energyLoss = ENERGY_DECAY * hoursSinceLastUpdate;
-      setEnergyLevel((prev) => Math.max(0, prev - energyLoss));
-    }
-  };
-
-  // Handler for when a picture is taken
+  // Handler functions
   const handlePictureTaken = async (imageUri: string) => {
+    if (!buddyState) return;
+
     setCapturedImage(imageUri);
     setCameraVisible(false);
     setProcessingImage(true);
 
-    // Analyze the food image using our service
     try {
       const analysis = await FoodAnalyzer.analyzeImage(imageUri);
+      const hpGain = Math.round(
+        analysis.isHealthy ? HEALTHY_FOOD_HP_GAIN : UNHEALTHY_FOOD_HP_GAIN
+      );
 
-      // Update buddy based on analysis
-      setLastFed(new Date());
+      // Add to food journal
+      addFoodEntry({
+        name: analysis.labels?.[0] || "Unknown Food",
+        timestamp: new Date(),
+        imageUrl: imageUri,
+        confidence: analysis.confidence || 0,
+        isHealthy: analysis.isHealthy,
+        labels: analysis.labels || [],
+      });
 
-      if (analysis.isHealthy) {
-        setHealthLevel((prev) => Math.min(100, prev + HEALTHY_FOOD_HP_GAIN));
-        Alert.alert(
-          "Healthy Food!",
-          `That's a nutritious meal! ${buddyName} feels great and gained ${HEALTHY_FOOD_HP_GAIN} HP!`
-        );
-      } else {
-        setHealthLevel((prev) => Math.min(100, prev + UNHEALTHY_FOOD_HP_GAIN));
-        Alert.alert(
-          "Snack Time!",
-          `${buddyName} enjoyed that treat but it's not very nutritious. Gained ${UNHEALTHY_FOOD_HP_GAIN} HP.`
-        );
-      }
+      await updateBuddyState({
+        hp: Math.min(100, Math.round(buddyState.hp + hpGain)),
+        lastFed: new Date().toISOString(),
+      });
+
+      Alert.alert(
+        analysis.isHealthy ? "Healthy Food! 🥗" : "Unhealthy Food! 🍔",
+        `I think this is: ${analysis.labels?.join(", ") || "unknown food"}\n\n${
+          analysis.isHealthy
+            ? `Great choice! ${buddyState.name} is happy about this healthy meal!`
+            : `${buddyState.name} would prefer something healthier next time!`
+        }`,
+        [{ text: "OK", onPress: () => console.log("OK Pressed") }]
+      );
     } catch (error) {
       console.error("Error processing food image:", error);
-      Alert.alert("Error", "Failed to analyze food. Please try again.");
+      Alert.alert("Error", "Failed to process food image");
     } finally {
       setProcessingImage(false);
       setCapturedImage(null);
     }
   };
 
-  // Handle opening the camera
-  const handleFeed = () => {
-    setCameraVisible(true);
-  };
+  const handleWaterSubmit = async () => {
+    if (!buddyState) return;
 
-  // Handle giving water to buddy
-  const handleDrink = () => {
-    setWaterModalVisible(true);
-  };
-
-  // Handle water modal submit
-  const handleWaterSubmit = () => {
     const cups = parseInt(waterAmount, 10) || 1;
+    const newWaterConsumed = Math.round((buddyState.waterConsumed || 0) + cups);
 
-    setLastDrank(new Date());
-    setHealthLevel((prev) => Math.min(100, prev + cups * 2)); // 2 HP per cup
-    setWaterConsumed((prev) => prev + cups);
+    await updateBuddyState({
+      hp: Math.min(100, Math.round(buddyState.hp + cups * 2)),
+      waterConsumed: newWaterConsumed,
+      lastDrank: new Date().toISOString(),
+    });
 
     Alert.alert(
       "Refreshing!",
-      `${buddyName} has had ${cups} cup${
+      `${buddyState.name} has had ${cups} cup${
         cups > 1 ? "s" : ""
-      } of water! That's ${waterConsumed + cups} cups today.`
+      } of water! That's ${newWaterConsumed} cups today.`
     );
 
     setWaterModalVisible(false);
     setWaterAmount("1");
   };
 
-  // Handle sleep toggle
-  const handleSleep = () => {
-    if (isSleeping) {
-      // Waking up
-      if (sleepStartTime) {
-        const now = new Date();
-        const today = now.toDateString();
+  // Enhanced pedometer setup
+  useEffect(() => {
+    let subscription: any;
 
-        // Calculate hours slept
-        const hoursSlept =
-          (now.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60);
+    const setupPedometer = async () => {
+      try {
+        const { status } = await Pedometer.requestPermissionsAsync();
+        if (status === "granted") {
+          setIsPedometerAvailable(true);
+          const end = new Date();
+          const start = new Date();
+          start.setHours(0, 0, 0, 0);
 
-        // Add energy based on sleep time
-        const energyGain = ENERGY_RECOVERY * hoursSlept;
-        setEnergyLevel((prev) => Math.min(100, prev + energyGain));
+          const { steps: initialSteps = 0 } =
+            (await Pedometer.getStepCountAsync(start, end)) || {};
+          setCurrentStepCount(initialSteps);
+          setLastStepReward(initialSteps);
 
-        // Track total sleep for the day
-        if (lastSleepDate !== today) {
-          // This is a new day's sleep
-          setTotalSleepHours(hoursSlept);
-          setLastSleepDate(today);
-        } else {
-          // Add to today's sleep (nap)
-          setTotalSleepHours((prev) => prev + hoursSlept);
+          subscription = Pedometer.watchStepCount((result) => {
+            setCurrentStepCount(result.steps);
+            checkStepRewards(result.steps);
+          });
         }
+      } catch (error) {
+        console.error("Pedometer setup failed:", error);
+        setIsPedometerAvailable(false);
+      }
+    };
 
-        // Alert user
-        Alert.alert(
-          "Good morning!",
-          `${buddyName} slept for ${hoursSlept.toFixed(
-            1
-          )} hours and feels refreshed!`
+    setupPedometer();
+    return () => subscription?.remove();
+  }, []);
+
+  // Enhanced step reward system
+  const checkStepRewards = useCallback(
+    async (steps: number) => {
+      if (!buddyState || stepRewardsGiven >= MAX_DAILY_STEP_REWARDS) return;
+
+      const stepsSinceLastReward = steps - lastStepReward;
+      if (stepsSinceLastReward >= STEP_REWARD_THRESHOLD) {
+        const rewardsToGive = Math.floor(
+          stepsSinceLastReward / STEP_REWARD_THRESHOLD
         );
+        const possibleRewards = Math.min(
+          rewardsToGive,
+          MAX_DAILY_STEP_REWARDS - stepRewardsGiven
+        );
+
+        if (possibleRewards > 0) {
+          const hpGain = possibleRewards * STEP_REWARD_HP;
+          await updateBuddyState({
+            hp: Math.min(100, buddyState.hp + hpGain),
+          });
+
+          setLastStepReward(steps);
+          setStepRewardsGiven((prev) => prev + possibleRewards);
+          setShowStepReward(true);
+          setTimeout(() => setShowStepReward(false), 3000);
+        }
+      }
+    },
+    [buddyState, lastStepReward, stepRewardsGiven]
+  );
+
+  // Enhanced sleep handling
+  const handleSleep = async () => {
+    if (!buddyState || isTogglingState || sleepTransitioning) return;
+
+    try {
+      setSleepTransitioning(true);
+      setIsTogglingState(true);
+
+      const currentSleepState = buddyState.isSleeping;
+      const now = new Date();
+
+      // Force a stat update before changing sleep state
+      await updateBuddyStats(true);
+
+      // Calculate sleep duration if waking up
+      let sleepDuration = 0;
+      if (currentSleepState && buddyState.lastSlept) {
+        sleepDuration =
+          (now.getTime() - new Date(buddyState.lastSlept).getTime()) /
+          (1000 * 60 * 60);
       }
 
-      setIsSleeping(false);
-      setSleepStartTime(null);
-    } else {
-      // Going to sleep
-      setIsSleeping(true);
-      setSleepStartTime(new Date());
-      Alert.alert("Sleep tight!", `${buddyName} is now sleeping!`);
+      const updates: any = {
+        isSleeping: !currentSleepState,
+        lastSlept: !currentSleepState
+          ? now.toISOString()
+          : buddyState.lastSlept,
+      };
+
+      // Apply sleep benefits when waking up
+      if (currentSleepState && sleepDuration > 0) {
+        const energyGain = Math.round(ENERGY_RECOVERY * sleepDuration);
+        updates.energy = Math.min(100, buddyState.energy + energyGain);
+
+        // Bonus HP for good sleep (6-8 hours)
+        if (sleepDuration >= 6 && sleepDuration <= 8) {
+          updates.hp = Math.min(100, buddyState.hp + 10);
+        }
+      }
+
+      await updateBuddyState(updates);
+
+      // Show sleep feedback
+      if (!currentSleepState) {
+        Alert.alert(
+          "Sweet Dreams! 💤",
+          `${buddyState.name} is going to sleep. They'll recover energy while sleeping!`
+        );
+      } else if (sleepDuration > 0) {
+        Alert.alert(
+          "Rise and Shine! 🌅",
+          `${buddyState.name} slept for ${Math.round(
+            sleepDuration
+          )} hours and feels ${
+            sleepDuration >= 6 && sleepDuration <= 8 ? "great" : "better"
+          }!`
+        );
+      }
+    } finally {
+      setIsTogglingState(false);
+      setSleepTransitioning(false);
     }
   };
 
-  // Camera view when taking a picture
-  if (cameraVisible) {
-    return (
-      <FoodCamera
-        onTakePicture={handlePictureTaken}
-        onCancel={() => setCameraVisible(false)}
-        buddyName={buddyName}
-      />
-    );
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      // The auth subscription in _layout should handle navigation
+    } catch (error) {
+      console.error("Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out");
+    }
+  };
+
+  // Periodic updates
+  useEffect(() => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    // Start a new timer
+    timerRef.current = setInterval(() => {
+      console.warn("[BuddyScreen] Timer tick: Running updateBuddyStats");
+      updateBuddyStats(false); // Don't force update on timer tick
+    }, 60 * 1000); // Update every minute
+
+    // Cleanup on unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        console.warn("[BuddyScreen] Cleared update timer");
+      }
+    };
+  }, [updateBuddyStats]);
+
+  // Initial state loading
+  if (isLoading || !buddyState) {
+    return <SplashScreen />;
   }
 
-  // Processing view when analyzing the image
-  if (processingImage) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.container}>
-          <Text style={styles.processingText}>Analyzing food...</Text>
-          {capturedImage && (
-            <Image
-              source={{ uri: capturedImage }}
-              style={styles.previewImage}
-            />
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
+  // Calculate percentages
+  const hpPercentage = (buddyState.hp / 100) * 100;
+  const energyPercentage = (buddyState.energy / 100) * 100;
+  const waterPercentage = (buddyState.waterConsumed / WATER_GOAL) * 100;
 
-  // Normal buddy view
+  // UI Rendering
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        {/* Buddy name and image */}
-        <Text style={styles.buddyName}>{buddyName}</Text>
-        <View
-          style={[
-            styles.buddyImageContainer,
-            isSleeping && styles.sleepingBuddy,
-          ]}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{buddyState.name}</Text>
+        {isPedometerAvailable && (
+          <View style={styles.stepCounter}>
+            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
+            <Text style={styles.stepText}>
+              {currentStepCount}/{dailyStepGoal}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.buddyContainer}>
+        <Text style={styles.buddyEmoji}>{buddyState.imageUrl}</Text>
+        {buddyState.isSleeping && (
+          <Text style={styles.sleepIndicator}>💤 Sleeping</Text>
+        )}
+      </View>
+
+      {/* Stats Section */}
+      <View style={styles.statsContainer}>
+        <StatDisplay
+          label="Health"
+          value={buddyState.hp}
+          maxValue={100}
+          color="#E53935"
+          icon="heart-outline"
+        />
+        <StatDisplay
+          label="Energy"
+          value={buddyState.energy}
+          maxValue={100}
+          color="#FFA000"
+          icon="battery-charging-outline"
+        />
+        <StatDisplay
+          label="Water"
+          value={buddyState.waterConsumed}
+          maxValue={WATER_GOAL}
+          color="#1E88E5"
+          icon="water-outline"
+        />
+      </View>
+
+      {/* Actions Section */}
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setCameraVisible(true)}
+          disabled={processingImage || isUpdatingStats}
         >
-          <Text style={styles.buddyEmoji}>
-            {isSleeping ? "💤" : buddyEmoji}
+          <Ionicons name="camera-outline" size={24} color="#5D4037" />
+          <Text style={styles.actionButtonText}>Feed Buddy</Text>
+          {processingImage && (
+            <ActivityIndicator size="small" color="#5D4037" />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => setWaterModalVisible(true)}
+          disabled={isUpdatingStats}
+        >
+          <Ionicons name="water-outline" size={24} color="#5D4037" />
+          <Text style={styles.actionButtonText}>Give Water</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleSleep}
+          disabled={isTogglingState || isUpdatingStats}
+        >
+          <Ionicons
+            name={buddyState.isSleeping ? "sunny-outline" : "moon-outline"}
+            size={24}
+            color="#5D4037"
+          />
+          <Text style={styles.actionButtonText}>
+            {buddyState.isSleeping ? "Wake Up" : "Sleep"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Food Camera Modal */}
+      {cameraVisible && (
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={cameraVisible}
+          onRequestClose={() => setCameraVisible(false)}
+        >
+          <FoodCamera
+            onTakePicture={handlePictureTaken}
+            onCancel={() => setCameraVisible(false)}
+            buddyName={buddyState.name}
+          />
+        </Modal>
+      )}
+
+      {/* Water Intake Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={waterModalVisible}
+        onRequestClose={() => setWaterModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>How many cups?</Text>
+            <TextInput
+              style={styles.waterInput}
+              value={waterAmount}
+              onChangeText={setWaterAmount}
+              keyboardType="numeric"
+              placeholder="Cups"
+            />
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={handleWaterSubmit}
+              >
+                <Text style={styles.modalButtonText}>Add Water</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
+                onPress={() => setWaterModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Step Reward Animation */}
+      {showStepReward && (
+        <View style={styles.stepRewardContainer}>
+          <Text style={styles.stepRewardText}>
+            +{STEP_REWARD_HP} HP from steps! 🏃‍♂️
           </Text>
         </View>
-
-        {/* Status bars */}
-        <View style={styles.statusContainer}>
-          {/* HP Bar */}
-          <View style={styles.statusBarWrapper}>
-            <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusEmoji}>❤️</Text>
-              <Text style={styles.statusLabel}>HP</Text>
-              <Text style={styles.statusValue}>{Math.round(healthLevel)}%</Text>
-            </View>
-            <View style={styles.statusBarBackground}>
-              <View
-                style={[
-                  styles.statusBarFill,
-                  { width: `${healthLevel}%`, backgroundColor: "#FF5252" },
-                ]}
-              />
-            </View>
-          </View>
-
-          {/* Energy Bar */}
-          <View style={styles.statusBarWrapper}>
-            <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusEmoji}>⚡</Text>
-              <Text style={styles.statusLabel}>Energy</Text>
-              <Text style={styles.statusValue}>{Math.round(energyLevel)}%</Text>
-            </View>
-            <View style={styles.statusBarBackground}>
-              <View
-                style={[
-                  styles.statusBarFill,
-                  { width: `${energyLevel}%`, backgroundColor: "#FFD600" },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Action buttons */}
-        <View style={styles.actionContainer}>
-          {/* Feed button */}
-          <TouchableOpacity style={styles.actionButton} onPress={handleFeed}>
-            <Ionicons name="camera-outline" size={36} color="#5D4037" />
-            <Text style={styles.actionText}>Feed</Text>
-          </TouchableOpacity>
-
-          {/* Drink button */}
-          <TouchableOpacity style={styles.actionButton} onPress={handleDrink}>
-            <Ionicons name="water-outline" size={36} color="#5D4037" />
-            <Text style={styles.actionText}>Drink</Text>
-          </TouchableOpacity>
-
-          {/* Sleep/Wake button */}
-          <TouchableOpacity style={styles.actionButton} onPress={handleSleep}>
-            <Ionicons
-              name={isSleeping ? "sunny-outline" : "bed-outline"}
-              size={36}
-              color="#5D4037"
-            />
-            <Text style={styles.actionText}>
-              {isSleeping ? "Wake" : "Sleep"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tracking stats */}
-        <View style={styles.trackingContainer}>
-          {/* Step tracking */}
-          <View style={styles.trackingItem}>
-            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
-            <Text style={styles.trackingText}>
-              {isPedometerAvailable
-                ? `${currentStepCount} / ${dailyStepGoal} steps today`
-                : "Pedometer not available"}
-            </Text>
-          </View>
-
-          {/* Step progress bar */}
-          {isPedometerAvailable && (
-            <View style={styles.stepProgressContainer}>
-              <View style={styles.stepProgressBackground}>
-                <View
-                  style={[
-                    styles.stepProgressFill,
-                    {
-                      width: `${Math.min(
-                        100,
-                        (currentStepCount / dailyStepGoal) * 100
-                      )}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          )}
-
-          {/* Sleep tracking */}
-          <View style={styles.trackingItem}>
-            <Ionicons name="bed-outline" size={24} color="#5D4037" />
-            <Text style={styles.trackingText}>
-              {lastSleepDate === new Date().toDateString()
-                ? `Slept ${totalSleepHours.toFixed(1)} hours today`
-                : "No sleep recorded today"}
-            </Text>
-          </View>
-
-          {/* Water tracking */}
-          <View style={styles.trackingItem}>
-            <Ionicons name="water-outline" size={24} color="#5D4037" />
-            <Text style={styles.trackingText}>
-              {`${waterConsumed} / ${WATER_GOAL} cups of water today`}
-            </Text>
-          </View>
-
-          {/* Water progress bar */}
-          <View style={styles.waterProgressContainer}>
-            <View style={styles.waterProgressBackground}>
-              <View
-                style={[
-                  styles.waterProgressFill,
-                  {
-                    width: `${Math.min(
-                      100,
-                      (waterConsumed / WATER_GOAL) * 100
-                    )}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Water Modal */}
-        <Modal
-          visible={waterModalVisible}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setWaterModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>How many cups of water?</Text>
-
-              <TextInput
-                style={styles.modalInput}
-                keyboardType="number-pad"
-                value={waterAmount}
-                onChangeText={setWaterAmount}
-                maxLength={2}
-              />
-
-              <View style={styles.modalButtonsContainer}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalCancelButton]}
-                  onPress={() => {
-                    setWaterModalVisible(false);
-                    setWaterAmount("1");
-                  }}
-                >
-                  <Text style={styles.modalButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={handleWaterSubmit}
-                >
-                  <Text style={styles.modalButtonText}>Confirm</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFF8E1",
-    // Add extra padding for Dynamic Island
-    paddingTop: 60,
-  },
   container: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 20,
+    backgroundColor: "#FFF8E1",
+    paddingTop: 60,
   },
-  buddyName: {
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+  },
+  title: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#5D4037",
-    marginBottom: 10,
+    marginRight: 20,
   },
-  buddyImageContainer: {
-    width: 150,
-    height: 150,
-    backgroundColor: "#FFD54F",
-    borderRadius: 75,
-    justifyContent: "center",
+  buddyContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#FFA000",
-    marginBottom: 30,
-  },
-  sleepingBuddy: {
-    backgroundColor: "#E0E0E0",
-    borderColor: "#BDBDBD",
+    padding: 20,
   },
   buddyEmoji: {
     fontSize: 80,
   },
-  statusContainer: {
-    width: "100%",
-    marginBottom: 30,
+  sleepIndicator: {
+    fontSize: 16,
+    color: "#5D4037",
+    marginLeft: 10,
   },
-  statusBarWrapper: {
-    marginBottom: 16,
+  statsContainer: {
+    padding: 16,
   },
-  statusLabelContainer: {
+  statContainer: {
+    marginVertical: 8,
+    padding: 12,
+    backgroundColor: "white",
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  statHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  statusEmoji: {
-    fontSize: 18,
-    marginRight: 8,
-  },
-  statusLabel: {
+  statLabel: {
+    marginLeft: 8,
     fontSize: 16,
     fontWeight: "bold",
-    color: "#5D4037",
-    flex: 1,
   },
-  statusValue: {
+  statValue: {
+    fontSize: 14,
+    textAlign: "right",
+    marginTop: 2,
+  },
+  pedometerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 20,
+  },
+  pedometerText: {
     fontSize: 16,
     color: "#5D4037",
-    marginLeft: 8,
+    marginLeft: 10,
   },
-  statusBarBackground: {
-    height: 20,
-    backgroundColor: "#EEEEEE",
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "#D7CCC8",
-  },
-  statusBarFill: {
-    height: "100%",
-    borderRadius: 8,
-  },
-  actionContainer: {
+  actionsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
-    marginBottom: 30,
+    padding: 20,
   },
   actionButton: {
     backgroundColor: "#FFA000",
@@ -682,63 +705,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FF8F00",
   },
-  actionText: {
+  actionButtonText: {
     marginTop: 8,
     color: "#5D4037",
     fontWeight: "bold",
   },
-  processingText: {
-    fontSize: 24,
-    color: "#5D4037",
-    marginBottom: 20,
-  },
-  previewImage: {
-    width: 300,
-    height: 300,
-    borderRadius: 20,
-    marginBottom: 20,
-  },
-  // Tracking styles
-  trackingContainer: {
-    width: "100%",
-    backgroundColor: "#FFF3E0",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "#FFE0B2",
-  },
-  trackingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  trackingText: {
-    fontSize: 16,
-    color: "#5D4037",
-    marginLeft: 10,
-  },
-  waterProgressContainer: {
-    marginTop: 5,
-  },
-  waterProgressBackground: {
-    height: 15,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  waterProgressFill: {
-    height: "100%",
-    backgroundColor: "#4FC3F7",
-    borderRadius: 10,
-  },
-  // Modal styles
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContainer: {
+  modalContent: {
     width: "80%",
     backgroundColor: "#FFF8E1",
     borderRadius: 16,
@@ -753,7 +731,7 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     marginBottom: 20,
   },
-  modalInput: {
+  waterInput: {
     backgroundColor: "white",
     width: "50%",
     height: 50,
@@ -765,7 +743,7 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     marginBottom: 20,
   },
-  modalButtonsContainer: {
+  modalButtonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
@@ -786,19 +764,43 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  stepProgressContainer: {
-    marginTop: 5,
-    marginBottom: 10,
+  stepRewardContainer: {
+    position: "absolute",
+    top: "15%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 999,
   },
-  stepProgressBackground: {
-    height: 15,
+  stepRewardText: {
+    backgroundColor: "rgba(255, 160, 0, 0.9)",
+    color: "white",
+    padding: 8,
+    borderRadius: 8,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  progressBarContainer: {
+    height: 12,
     backgroundColor: "#E0E0E0",
-    borderRadius: 10,
+    borderRadius: 6,
     overflow: "hidden",
+    marginVertical: 4,
   },
-  stepProgressFill: {
+  progressBarFill: {
     height: "100%",
-    backgroundColor: "#81C784",
-    borderRadius: 10,
+    borderRadius: 6,
+  },
+  stepCounter: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFE0B2",
+    padding: 8,
+    borderRadius: 20,
+  },
+  stepText: {
+    marginLeft: 8,
+    color: "#5D4037",
+    fontWeight: "bold",
   },
 });
