@@ -10,6 +10,7 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -422,46 +423,33 @@ export default function BuddyScreen() {
         {/* Header buttons */}
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.headerButton} onPress={handleSignOut}>
-            <Ionicons name="log-out-outline" size={24} color="#5D4037" />
+            <Ionicons name="log-out-outline" size={24} color="#000000" />
           </TouchableOpacity>
         </View>
 
         {/* Loading indicator for stats update */}
         {isUpdatingStats && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFA000" />
+            <ActivityIndicator size="large" color="#8977b6" />
           </View>
         )}
 
-        {/* Buddy name and image */}
+        {/* Buddy name */}
         <Text style={styles.buddyName}>{buddyState.name}</Text>
-        <View
-          style={[
-            styles.buddyImageContainer,
-            buddyState.isSleeping && styles.sleepingBuddy,
-          ]}
-        >
-          <Text style={styles.buddyEmoji}>
-            {buddyState.isSleeping ? "💤" : buddyState.imageUrl}
-          </Text>
-        </View>
 
         {/* Status bars */}
         <View style={styles.statusContainer}>
           {/* HP Bar */}
           <View style={styles.statusBarWrapper}>
             <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusEmoji}>❤️</Text>
-              <Text style={styles.statusLabel}>HP</Text>
-              <Text style={styles.statusValue}>
-                {Math.round(buddyState.hp)}%
-              </Text>
+              <Text style={styles.statusLabel}>HUNGER</Text>
+              <Text style={styles.statusValue}>{Math.round(buddyState.hp)}/100</Text>
             </View>
             <View style={styles.statusBarBackground}>
               <View
                 style={[
                   styles.statusBarFill,
-                  { width: `${buddyState.hp}%`, backgroundColor: "#FF5252" },
+                  { width: `${buddyState.hp}%`, backgroundColor: "#f39c12" },
                 ]}
               />
             </View>
@@ -470,19 +458,32 @@ export default function BuddyScreen() {
           {/* Energy Bar */}
           <View style={styles.statusBarWrapper}>
             <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusEmoji}>⚡</Text>
-              <Text style={styles.statusLabel}>Energy</Text>
-              <Text style={styles.statusValue}>
-                {Math.round(buddyState.energy)}%
-              </Text>
+              <Text style={styles.statusLabel}>ENERGY</Text>
+              <Text style={styles.statusValue}>{Math.round(buddyState.energy)}/100</Text>
             </View>
             <View style={styles.statusBarBackground}>
               <View
                 style={[
                   styles.statusBarFill,
-                  {
-                    width: `${buddyState.energy}%`,
-                    backgroundColor: "#FFD600",
+                  { width: `${buddyState.energy}%`, backgroundColor: "#8977b6" },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Hydration Bar */}
+          <View style={styles.statusBarWrapper}>
+            <View style={styles.statusLabelContainer}>
+              <Text style={styles.statusLabel}>HYDRATION</Text>
+              <Text style={styles.statusValue}>{Math.round((buddyState.waterConsumed || 0) / WATER_GOAL * 100)}/100</Text>
+            </View>
+            <View style={styles.statusBarBackground}>
+              <View
+                style={[
+                  styles.statusBarFill,
+                  { 
+                    width: `${Math.min(100, ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100)}%`,
+                    backgroundColor: "#4FC3F7"
                   },
                 ]}
               />
@@ -490,112 +491,61 @@ export default function BuddyScreen() {
           </View>
         </View>
 
+        {/* Buddy image */}
+        <View style={[styles.buddyImageContainer, buddyState.isSleeping && styles.sleepingBuddy]}>
+          <Text style={styles.buddyEmoji}>
+            {buddyState.isSleeping ? "💤" : buddyState.imageUrl}
+          </Text>
+        </View>
+
         {/* Action buttons */}
         <View style={styles.actionContainer}>
-          {/* Feed button */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setCameraVisible(true)}
           >
-            <Ionicons name="camera-outline" size={36} color="#5D4037" />
-            <Text style={styles.actionText}>Feed</Text>
+            <Text style={styles.actionText}>FEED</Text>
           </TouchableOpacity>
 
-          {/* Drink button */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setWaterModalVisible(true)}
           >
-            <Ionicons name="water-outline" size={36} color="#5D4037" />
-            <Text style={styles.actionText}>Drink</Text>
+            <Text style={styles.actionText}>DRINK</Text>
           </TouchableOpacity>
 
-          {/* Sleep/Wake button - restored to action buttons */}
           <TouchableOpacity
             style={[styles.actionButton, isTogglingState && { opacity: 0.5 }]}
             onPress={handleSleep}
             disabled={isTogglingState}
           >
-            <Ionicons
-              name={buddyState.isSleeping ? "sunny-outline" : "bed-outline"}
-              size={36}
-              color="#5D4037"
-            />
             <Text style={styles.actionText}>
-              {buddyState.isSleeping ? "Wake" : "Sleep"}
+              {buddyState.isSleeping ? "WAKE" : "SLEEP"}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tracking stats */}
+        {/* Today's wellness */}
         <View style={styles.trackingContainer}>
-          {/* Sleep tracking */}
           <View style={styles.trackingItem}>
-            <Ionicons name="bed-outline" size={24} color="#5D4037" />
             <Text style={styles.trackingText}>
-              {buddyState.lastSleepDate === new Date().toDateString()
-                ? `Slept ${
-                    buddyState.totalSleepHours?.toFixed(1) || 0
-                  } hours today`
-                : "No sleep recorded today"}
+              SLEEP: {buddyState.lastSleepDate === new Date().toDateString()
+                ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
+                : "0h"}
             </Text>
           </View>
 
-          {/* Water tracking */}
           <View style={styles.trackingItem}>
-            <Ionicons name="water-outline" size={24} color="#5D4037" />
             <Text style={styles.trackingText}>
-              {`${
-                buddyState.waterConsumed || 0
-              } / ${WATER_GOAL} cups of water today`}
+              WATER: {buddyState.waterConsumed || 0} CUPS
             </Text>
           </View>
 
-          {/* Water progress bar */}
-          <View style={styles.waterProgressContainer}>
-            <View style={styles.waterProgressBackground}>
-              <View
-                style={[
-                  styles.waterProgressFill,
-                  {
-                    width: `${Math.min(
-                      100,
-                      ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
-                    )}%`,
-                  },
-                ]}
-              />
-            </View>
-          </View>
-
-          {/* Steps tracking */}
           <View style={styles.trackingItem}>
-            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
             <Text style={styles.trackingText}>
-              {isPedometerAvailable
-                ? `${currentStepCount} / ${dailyStepGoal} steps today`
-                : "Pedometer not available"}
+              STEPS: {isPedometerAvailable ? currentStepCount : "N/A"}
             </Text>
           </View>
-
-          {/* Steps progress bar */}
-          {isPedometerAvailable && (
-            <View style={styles.waterProgressContainer}>
-              <View style={styles.waterProgressBackground}>
-                <View
-                  style={[
-                    styles.stepsProgressFill,
-                    {
-                      width: `${Math.min(
-                        100,
-                        (currentStepCount / dailyStepGoal) * 100
-                      )}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          )}
         </View>
 
         {/* Water Modal */}
@@ -607,7 +557,7 @@ export default function BuddyScreen() {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>How many cups of water?</Text>
+              <Text style={styles.modalTitle}>HOW MANY CUPS OF WATER?</Text>
 
               <TextInput
                 style={styles.modalInput}
@@ -625,14 +575,14 @@ export default function BuddyScreen() {
                     setWaterAmount("1");
                   }}
                 >
-                  <Text style={styles.modalButtonText}>Cancel</Text>
+                  <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>CANCEL</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.modalButton}
                   onPress={handleWaterSubmit}
                 >
-                  <Text style={styles.modalButtonText}>Confirm</Text>
+                  <Text style={styles.modalButtonText}>CONFIRM</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -646,151 +596,198 @@ export default function BuddyScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFF8E1",
-    // Add extra padding for Dynamic Island
-    paddingTop: 60,
+    backgroundColor: "#3AA385", // pixel-green
+    paddingTop: Platform.OS === 'ios' ? 47 : 0,
   },
   container: {
     flex: 1,
+    backgroundColor: "#3AA385",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 70,
+    position: "relative",
+  },
+  headerButtons: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 1,
+  },
+  headerButton: {
+    padding: 12,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   buddyName: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#5D4037",
-    marginBottom: 10,
+    fontSize: 24,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    backgroundColor: "#F7F5E1", // pixel-cream
+    width: "100%",
+    textAlign: "center",
+    paddingVertical: 16,
+    borderBottomWidth: 4,
+    borderBottomColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 24,
+    textTransform: "uppercase",
   },
   buddyImageContainer: {
-    width: 150,
-    height: 150,
-    backgroundColor: "#FFD54F",
-    borderRadius: 75,
+    width: 160,
+    height: 160,
+    backgroundColor: "#FFFCEE", // pixel-cream-light
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#FFA000",
-    marginBottom: 30,
+    borderWidth: 4,
+    borderColor: "#000000",
+    marginVertical: 24,
+    alignSelf: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
   },
   sleepingBuddy: {
-    backgroundColor: "#E0E0E0",
-    borderColor: "#BDBDBD",
+    backgroundColor: "#F7F5E1", // pixel-cream
   },
   buddyEmoji: {
     fontSize: 80,
+    textAlign: "center",
+    lineHeight: 120,
   },
   statusContainer: {
     width: "100%",
-    marginBottom: 30,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   statusBarWrapper: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   statusLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-  },
-  statusEmoji: {
-    fontSize: 18,
-    marginRight: 8,
+    marginBottom: 4,
   },
   statusLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#5D4037",
+    fontSize: 12,
+    fontFamily: "Minecraft",
+    color: "#000000",
     flex: 1,
+    textTransform: "uppercase",
   },
   statusValue: {
-    fontSize: 16,
-    color: "#5D4037",
+    fontSize: 12,
+    fontFamily: "Minecraft",
+    color: "#000000",
     marginLeft: 8,
   },
   statusBarBackground: {
-    height: 20,
-    backgroundColor: "#EEEEEE",
-    borderRadius: 10,
-    overflow: "hidden",
+    height: 12,
+    backgroundColor: "#FFFFFF",
     borderWidth: 2,
-    borderColor: "#D7CCC8",
+    borderColor: "#000000",
+    overflow: "hidden",
   },
   statusBarFill: {
     height: "100%",
-    borderRadius: 8,
   },
   actionContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "center",
     width: "100%",
-    marginBottom: 30,
+    paddingHorizontal: 24,
+    gap: 16,
+    marginBottom: 24,
   },
   actionButton: {
-    backgroundColor: "#FFA000",
-    width: 100,
-    height: 100,
-    borderRadius: 12,
+    flex: 1,
+    aspectRatio: 1,
+    backgroundColor: "#F7F5E1", // pixel-cream
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FF8F00",
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    padding: 12,
+    transform: [{ translateY: 0 }], // For press animation
+  },
+  actionButtonPressed: {
+    transform: [{ translateY: 3 }],
+    shadowOffset: {
+      width: 1,
+      height: 1,
+    },
   },
   actionText: {
-    marginTop: 8,
-    color: "#5D4037",
-    fontWeight: "bold",
+    color: "#000000",
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   processingText: {
     fontSize: 24,
-    color: "#5D4037",
+    fontFamily: "Minecraft",
+    color: "#000000",
     marginBottom: 20,
+    textTransform: "uppercase",
   },
   previewImage: {
     width: 300,
     height: 300,
-    borderRadius: 20,
+    borderWidth: 4,
+    borderColor: "#000000",
     marginBottom: 20,
   },
-  // Tracking styles
   trackingContainer: {
     width: "100%",
-    backgroundColor: "#FFF3E0",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "#FFE0B2",
+    backgroundColor: "#FFFCEE", // pixel-cream-light
+    borderTopWidth: 4,
+    borderTopColor: "#000000",
+    padding: 24,
   },
   trackingItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
+    justifyContent: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0, 0, 0, 0.1)",
+    borderStyle: "dashed",
+    paddingBottom: 8,
   },
   trackingText: {
-    fontSize: 16,
-    color: "#5D4037",
-    marginLeft: 10,
+    fontSize: 14,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    textAlign: "center",
+    textTransform: "uppercase",
   },
-  waterProgressContainer: {
-    marginTop: 5,
-    marginBottom: 15,
-  },
-  waterProgressBackground: {
-    height: 15,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  waterProgressFill: {
-    height: "100%",
-    backgroundColor: "#4FC3F7",
-    borderRadius: 10,
-  },
-  stepsProgressFill: {
-    height: "100%",
-    backgroundColor: "#66BB6A", // Green color for steps
-    borderRadius: 10,
-  },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -799,51 +796,71 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: "80%",
-    backgroundColor: "#FFF8E1",
-    borderRadius: 16,
-    padding: 20,
+    maxWidth: 400,
+    backgroundColor: "#FFFCEE", // pixel-cream-light
+    borderWidth: 4,
+    borderColor: "#000000",
+    padding: 24,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFA000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#5D4037",
-    marginBottom: 20,
+    fontSize: 16,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    marginBottom: 24,
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   modalInput: {
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
     width: "50%",
-    height: 50,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#FFB74D",
+    height: 48,
+    borderWidth: 3,
+    borderColor: "#000000",
     fontSize: 20,
+    fontFamily: "Minecraft",
     textAlign: "center",
-    color: "#5D4037",
-    marginBottom: 20,
+    color: "#000000",
+    marginBottom: 24,
   },
   modalButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
+    gap: 16,
   },
   modalButton: {
-    backgroundColor: "#FFA000",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    minWidth: 100,
-    alignItems: "center",
+    flex: 1,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    padding: 12,
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   modalCancelButton: {
-    backgroundColor: "#E0E0E0",
+    backgroundColor: "#8977b6", // pixel-purple
   },
   modalButtonText: {
-    color: "#5D4037",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#000000",
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    textAlign: "center",
+    textTransform: "uppercase",
   },
   loadingOverlay: {
     position: "absolute",
@@ -855,18 +872,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    position: "absolute",
-    top: 16,
-    right: 16,
-    gap: 16,
-    zIndex: 1,
-  },
-  headerButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: "#FFE0B2",
   },
 });

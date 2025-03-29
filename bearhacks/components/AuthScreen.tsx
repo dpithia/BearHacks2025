@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#3AA385", // pixel-green
-    paddingTop: Platform.OS === 'ios' ? 47 : 0, // Account for dynamic island
   },
   container: {
     flex: 1,
@@ -117,7 +116,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F5E1", // pixel-cream
     borderBottomWidth: 4,
     borderBottomColor: "#000000",
-    padding: 12,
+    padding: 16,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -128,11 +127,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: "Minecraft",
-    fontWeight: "400",
     textAlign: "center",
     color: "#000000",
+    textTransform: "uppercase",
   },
   contentContainer: {
     flex: 1,
@@ -149,8 +148,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFCEE", // pixel-cream-light
     borderWidth: 4,
     borderColor: "#000000",
-    padding: 20,
-    marginBottom: 16,
+    padding: 24,
+    marginBottom: 24,
     shadowColor: "#000000",
     shadowOffset: {
       width: 5,
@@ -161,19 +160,19 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: "Minecraft",
-    fontWeight: "400",
     marginBottom: 8,
     color: "#000000",
+    textTransform: "uppercase",
   },
   input: {
     width: "100%",
     height: 44,
-    backgroundColor: "#FFFCEE", // pixel-cream-light
-    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 3,
     borderColor: "#000000",
-    padding: 8,
+    padding: 12,
     marginBottom: 16,
     fontFamily: "Minecraft",
     fontSize: 14,
@@ -181,7 +180,7 @@ const styles = StyleSheet.create({
   },
   signInButton: {
     backgroundColor: "#F7F5E1", // pixel-cream
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: "#000000",
     padding: 12,
     marginTop: 8,
@@ -197,22 +196,22 @@ const styles = StyleSheet.create({
   signInButtonText: {
     color: "#000000",
     fontFamily: "Minecraft",
-    fontSize: 16,
-    fontWeight: "400",
+    fontSize: 14,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   signUpText: {
     color: "#000000",
     fontFamily: "Minecraft",
     fontSize: 14,
-    fontWeight: "400",
     marginBottom: 8,
+    textTransform: "uppercase",
   },
   signUpButton: {
     backgroundColor: "#8977b6", // pixel-purple
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: "#000000",
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 24,
     shadowColor: "#000000",
     shadowOffset: {
@@ -227,8 +226,8 @@ const styles = StyleSheet.create({
     color: "#FFFCEE", // pixel-cream-light
     fontFamily: "Minecraft",
     fontSize: 14,
-    fontWeight: "400",
     textAlign: "center",
+    textTransform: "uppercase",
   },
 });
 
