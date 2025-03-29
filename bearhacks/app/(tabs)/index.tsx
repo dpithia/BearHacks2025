@@ -9,6 +9,7 @@ import {
   ImageBackground,
   Platform,
   SafeAreaView,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import SplashScreen from "../../components/SplashScreen";
@@ -19,16 +20,32 @@ export default function HomeScreen() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [buddyName, setBuddyName] = useState<string>("");
-  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const { buddyState, isLoading: isBuddyLoading } = useBuddyState();
 
-  // Emoji options with labels
+  // Cat options with labels and GIF paths
   const buddyOptions = [
-    { emoji: "🧑", label: "HUMAN" },
-    { emoji: "🐱", label: "CAT" },
-    { emoji: "🐕", label: "DOG" },
-    { emoji: "🐦", label: "BIRD" },
+    {
+      gif: require("../../assets/gifs/blackcatsitting.gif"),
+      label: "BLACK",
+      id: "black",
+    },
+    {
+      gif: require("../../assets/gifs/christmascatsitting.gif"),
+      label: "CHRISTMAS",
+      id: "christmas",
+    },
+    {
+      gif: require("../../assets/gifs/whitecatsitting.gif"),
+      label: "WHITE",
+      id: "white",
+    },
+    {
+      gif: require("../../assets/gifs/batmancatsitting.gif"),
+      label: "BATMAN",
+      id: "batman",
+    },
   ];
 
   // Check if buddy exists and redirect if needed
@@ -49,26 +66,26 @@ export default function HomeScreen() {
     return null;
   }
 
-  // Handle emoji selection
-  const handleEmojiSelect = (emoji: string) => {
-    setSelectedEmoji(emoji);
+  // Handle cat selection
+  const handleCatSelect = (catId: string) => {
+    setSelectedCat(catId);
   };
 
   // Handle buddy creation
   const handleCreateBuddy = async () => {
-    if (!buddyName || !selectedEmoji || isCreating) return;
+    if (!buddyName || !selectedCat || isCreating) return;
 
     try {
       setIsCreating(true);
       console.warn("[HomeScreen] Creating new buddy:", {
         buddyName,
-        selectedEmoji,
+        selectedCat,
       });
 
       // Create buddy in Supabase
       await saveBuddyState({
         name: buddyName,
-        imageUrl: selectedEmoji,
+        imageUrl: selectedCat, // Store the cat type instead of emoji
         hp: 100,
         energy: 100,
         steps: 0,
@@ -85,7 +102,6 @@ export default function HomeScreen() {
       console.warn(
         "[HomeScreen] Buddy created successfully, navigating to buddy screen"
       );
-      // Navigate to buddy screen
       router.replace("/(tabs)/buddy");
     } catch (error) {
       console.error("[HomeScreen] Error creating buddy:", error);
@@ -102,11 +118,13 @@ export default function HomeScreen() {
           <Text style={styles.headerTitle}>CREATE YOUR</Text>
           <Text style={styles.headerTitle}>BUDDY</Text>
         </View>
-        
+
         <View style={styles.contentContainer}>
           <ImageBackground
             style={styles.gridBackground}
-            source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPdEVYdFRpdGxlAEdyaWQgUGF0dGVybtVVVkEAAAAadEVYdEF1dGhvcgBHcmlkIFBhdHRlcm4gQ3JlYXRvcl/YEg8AAAAhdEVYdERlc2NyaXB0aW9uAEdyaWQgUGF0dGVybiBDcmVhdG9yZGdkZAAAABd0RVh0Q3JlYXRpb24gVGltZQAyMDIzLTExLTI4W4RJnQAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAVdEVYdFRlY2huaXF1ZQBHcmlkIFBhdHRlcm6q5ZCEAAAAI3RFWHRUaW1lIFN0YW1wADIwMjMtMTEtMjggMTI6NDc6NDQgKzAwMDCwYJKGAAAAFXRFWHRDb3B5cmlnaHQAUHVibGljIERvbWFpbqHjYtcAAAAKdEVYdExpY2Vuc2UAQ0MwcsR8oAAAAApJREFUWIXt1j1IVGEYxvHfvXNmdWd3Z3fHj9bVVVdXV0VFRUVFRUVF7SNCiIiIiIgQIiIiIkSIiBARESEiQoSIEBEhIiIiQoiIiAgRIiIiIkKIiIiIiAgR4tR5Z+acOTPn7MfMzNz3geeF93mf+7kP7/ty4MCBAwd2GwngKDAP/AYywHOgY7eD7QYagFlAX2PNAc27GbIdeA/YQC6wbGAKOLKbQRuBN0ARyAMvgVEgDHwEVKAAvNrNoI3AJFAGvgGngRBQB5wD5oEScHQ3gzYAz4AK8BE4CQSBEHABWASWgBO7GbQemACqwBfgLOAHgsBFYAlYBk7tZtB6YByQwDxwHvACfuAy8B1YAc7sZtA6YAyQwFfgEuAGvMBV4AewClzYzaC1wCiggG/ADcAFuIEbwE9gDbgE2LsZdi0PAQv4AdwEnEAAuAX8AtaBK7sd9j4ggVXgDuAAAsAdYAP4A1zf7bD3gCqwBtwFbCAA3AM2gU3gJmDtdtgRQAXWgQeABQSAh8AWsAXcY4cPiDuAAmwAI0A1UAOMAlngL/CAHb5FbgEKsAmMAh6gBhgDckAOGGaHb/ENoALkgHHAC9QCE0AeyAMPgR0/RW4AFZAHJgEfUAc8BgpAARhihw+JK0AF2AKmgABQDzwBikARGGSHD6mrQBnIA9NACGgAngIloAQMsMOH5GWgDBSAp0AYaASeA2WgDPSzw4f0RaAMFIEZoBFoAl4AFaACPGKHD4kLQAUoAbNAM9AMvAQUQAH62OFD+hxQAcrAHNACtAKvARVQgV52+CnSC8hABZgH2oA24A2gARrQww4/xboBGSgDC0A70A68BTRAA7rZ4adoFyADZWAROAQcAt4BOqADXezwU7wTkIEysAR0AoeB94AO6MBDdvgp3gHIQBlYBo4AR4EPgA7oQCc7/C3SDshAGVgBjgHHgY+ADuhAOzv8LdYGyEAZWAWOAyeAT4AO6EArO/wt2grIQBlYA04CJ4HPgA7oQAs7/BRvBmSgDKwDp4DTwBdAB3TgPjt8SN8HyEAZ2ADOAJ3AV0AHdOAuO3xI3wXIQBnYBM4CXcA3QAd04A47fEjfBshAGcgC54Bu4DugAzpwix1+SN8CyEAZyAHngR7gB6ADOnCDHX5I3wDIQBnIA73AeeAnoAM6cI0dPqSvAzJQBgrABeAi8AvQAR24yg4f0lcBGSgDReAScBn4DeiADlxhhw/pK4AMlIES0A9cBf4AOqADl9nhQ/oyIANloAwMANeBv4AO6MAldrEDB/7X/AMRW5Q3E2KPbwAAAABJRU5ErkJggg=='}}
+            source={{
+              uri: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPdEVYdFRpdGxlAEdyaWQgUGF0dGVybtVVVkEAAAAadEVYdEF1dGhvcgBHcmlkIFBhdHRlcm4gQ3JlYXRvcl/YEg8AAAAhdEVYdERlc2NyaXB0aW9uAEdyaWQgUGF0dGVybiBDcmVhdG9yZGdkZAAAABd0RVh0Q3JlYXRpb24gVGltZQAyMDIzLTExLTI4W4RJnQAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAVdEVYdFRlY2huaXF1ZQBHcmlkIFBhdHRlcm6q5ZCEAAAAI3RFWHRUaW1lIFN0YW1wADIwMjMtMTEtMjggMTI6NDc6NDQgKzAwMDCwYJKGAAAAFXRFWHRDb3B5cmlnaHQAUHVibGljIERvbWFpbqHjYtcAAAAKdEVYdExpY2Vuc2UAQ0MwcsR8oAAAAApJREFUWIXt1j1IVGEYxvHfvXNmdWd3Z3fHj9bVVVdXV0VFRUVFRUVF7SNCiIiIiIgQIiIiIkSIiBARESEiQoSIEBEhIiIiQoiIiAgRIiIiIkKIiIiIiAgR4tR5Z+acOTPn7MfMzNz3geeF93mf+7kP7/ty4MCBAwd2GwngKDAP/AYywHOgY7eD7QYagFlAX2PNAc27GbIdeA/YQC6wbGAKOLKbQRuBN0ARyAMvgVEgDHwEVKAAvNrNoI3AJFAGvgGngRBQB5wD5oEScHQ3gzYAz4AK8BE4CQSBEHABWASWgBO7GbQemACqwBfgLOAHgsBFYAlYBk7tZtB6YByQwDxwHvACfuAy8B1YAc7sZtA6YAyQwFfgEuAGvMBV4AewClzYzaC1wCiggG/ADcAFuIEbwE9gDbgE2LsZdi0PAQv4AdwEnEAAuAX8AtaBK7sd9j4ggVXgDuAAAsAdYAP4A1zf7bD3gCqwBtwFbCAA3AM2gU3gJmDtdtgRQAXWgQeABQSAh8AWsAXcY4cPiDuAAmwAI0A1UAOMAlngL/CAHb5FbgEKsAmMAh6gBhgDckAOGGaHb/ENoALkgHHAC9QCE0AeyAMPgR0/RW4AFZAHJgEfUAc8BgpAARhihw+JK0AF2AKmgABQDzwBikARGGSHD6mrQBnIA9NACGgAngIloAQMsMOH5GWgDBSAp0AYaASeA2WgDPSzw4f0RaAMFIEZoBFoAl4AFaACPGKHD4kLQAUoAbNAM9AMvAQUQAH62OFD+hxQAcrAHNACtAKvARVQgV52+CnSC8hABZgH2oA24A2gARrQww4/xboBGSgDC0A70A68BTRAA7rZ4adoFyADZWAROAQcAt4BOqADXezwU7wTkIEysAR0AoeB94AO6MBDdvgp3gHIQBlYBo4AR4EPgA7oQCc7/C3SDshAGVgBjgHHgY+ADuhAOzv8LdYGyEAZWAWOAyeAT4AO6EArO/wt2grIQBlYA04CJ4HPgA7oQAs7/BRvBmSgDKwDp4DTwBdAB3TgPjt8SN8HyEAZ2ADOAJ3AV0AHdOAuO3xI3wXIQBnYBM4CXcA3QAd04A47fEjfBshAGcgC54Bu4DugAzpwix1+SN8CyEAZyAHngR7gB6ADOnCDHX5I3wDIQBnIA73AeeAnoAM6cI0dPqSvAzJQBgrABeAi8AvQAR24yg4f0lcBGSgDReAScBn4DeiADlxhhw/pK4AMlIES0A9cBf4AOqADl9nhQ/oyIANloAwMANeBv4AO6MAldrEDB/7X/AMRW5Q3E2KPbwAAAABJRU5ErkJggg==",
+            }}
             resizeMode="repeat"
           >
             <View style={styles.formContainer}>
@@ -127,11 +145,15 @@ export default function HomeScreen() {
                     key={index}
                     style={[
                       styles.buddyOption,
-                      selectedEmoji === option.emoji && styles.selectedBuddyOption,
+                      selectedCat === option.id && styles.selectedBuddyOption,
                     ]}
-                    onPress={() => handleEmojiSelect(option.emoji)}
+                    onPress={() => handleCatSelect(option.id)}
                   >
-                    <Text style={styles.buddyEmoji}>{option.emoji}</Text>
+                    <Image
+                      source={option.gif}
+                      style={styles.buddyGif}
+                      resizeMode="contain"
+                    />
                     <Text style={styles.buddyLabel}>{option.label}</Text>
                   </TouchableOpacity>
                 ))}
@@ -140,9 +162,10 @@ export default function HomeScreen() {
               <TouchableOpacity
                 style={[
                   styles.createButton,
-                  (!buddyName || !selectedEmoji || isCreating) && styles.disabledButton,
+                  (!buddyName || !selectedCat || isCreating) &&
+                    styles.disabledButton,
                 ]}
-                disabled={!buddyName || !selectedEmoji || isCreating}
+                disabled={!buddyName || !selectedCat || isCreating}
                 onPress={handleCreateBuddy}
               >
                 <Text style={styles.createButtonText}>CREATE</Text>
@@ -159,7 +182,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#3AA385", // pixel-green
-    paddingTop: Platform.OS === 'ios' ? 47 : 0, // Account for dynamic island
+    paddingTop: Platform.OS === "ios" ? 47 : 0, // Account for dynamic island
   },
   container: {
     flex: 1,
@@ -247,13 +270,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    padding: 8,
   },
   selectedBuddyOption: {
     borderWidth: 2,
     borderColor: "#8977b6", // pixel-purple
   },
-  buddyEmoji: {
-    fontSize: 40,
+  buddyGif: {
+    width: "100%",
+    height: "70%",
     marginBottom: 8,
   },
   buddyLabel: {

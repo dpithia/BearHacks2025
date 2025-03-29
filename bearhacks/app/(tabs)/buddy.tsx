@@ -35,6 +35,26 @@ const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
 const WATER_GOAL = 15; // Daily water goal in cups
 
+// Add this mapping near the top of the file, after imports
+const CAT_GIFS = {
+  black: {
+    idle: require("../../assets/gifs/blackcatidle.gif"),
+    sleep: require("../../assets/gifs/blackcatsleep.gif"),
+  },
+  batman: {
+    idle: require("../../assets/gifs/batmancatidle.gif"),
+    sleep: require("../../assets/gifs/batmancatsleep.gif"),
+  },
+  christmas: {
+    idle: require("../../assets/gifs/christmascatidle.gif"),
+    sleep: require("../../assets/gifs/christmascatsleep.gif"),
+  },
+  white: {
+    idle: require("../../assets/gifs/whitecatidle.gif"),
+    sleep: require("../../assets/gifs/whitecatsleep.gif"),
+  },
+};
+
 // Debounce utility function
 const debounce = (func: Function, wait: number) => {
   let timeout: NodeJS.Timeout;
@@ -527,12 +547,12 @@ export default function BuddyScreen() {
         >
           <Image
             source={
-              buddyState.isSleeping
-                ? require("../../assets/gifs/blackcatsleep.gif")
-                : require("../../assets/gifs/blackcatidle.gif")
+              CAT_GIFS[buddyState.imageUrl as keyof typeof CAT_GIFS]?.[
+                buddyState.isSleeping ? "sleep" : "idle"
+              ] || CAT_GIFS.black[buddyState.isSleeping ? "sleep" : "idle"]
             }
             style={styles.buddyGif}
-            resizeMode="stretch"
+            resizeMode="contain"
           />
         </View>
 

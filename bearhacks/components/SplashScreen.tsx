@@ -7,7 +7,7 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({
-  appName = "BearBuddy",
+  appName = "NineLives",
 }) => {
   // Animation value for rotation
   const spinValue = useRef(new Animated.Value(0)).current;
