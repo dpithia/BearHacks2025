@@ -585,25 +585,30 @@ export default function BuddyScreen() {
 
         {/* Today's wellness */}
         <View style={styles.trackingContainer}>
-          <View style={styles.trackingItem}>
-            <Text style={styles.trackingText}>
-              SLEEP:{" "}
-              {buddyState.lastSleepDate === new Date().toDateString()
-                ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
-                : "0h"}
-            </Text>
-          </View>
+          <Text style={styles.trackingTitle}>TODAY'S WELLNESS</Text>
+          <View style={styles.trackingItemsContainer}>
+            <View style={styles.trackingItem}>
+              <Text style={styles.trackingLabel}>SLEEP</Text>
+              <Text style={styles.trackingValue}>
+                {buddyState.lastSleepDate === new Date().toDateString()
+                  ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
+                  : "0h"}
+              </Text>
+            </View>
 
-          <View style={styles.trackingItem}>
-            <Text style={styles.trackingText}>
-              WATER: {buddyState.waterConsumed || 0} CUPS
-            </Text>
-          </View>
+            <View style={styles.trackingItem}>
+              <Text style={styles.trackingLabel}>WATER</Text>
+              <Text style={styles.trackingValue}>
+                {buddyState.waterConsumed || 0} CUPS
+              </Text>
+            </View>
 
-          <View style={styles.trackingItem}>
-            <Text style={styles.trackingText}>
-              STEPS: {isPedometerAvailable ? currentStepCount : "N/A"}
-            </Text>
+            <View style={styles.trackingItem}>
+              <Text style={styles.trackingLabel}>STEPS</Text>
+              <Text style={styles.trackingValue}>
+                {isPedometerAvailable ? currentStepCount : "N/A"}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -827,27 +832,61 @@ const styles = StyleSheet.create({
   },
   trackingContainer: {
     width: "100%",
-    backgroundColor: "#FFFCEE", // pixel-cream-light
-    borderTopWidth: 4,
-    borderTopColor: "#000000",
-    padding: 24,
+    backgroundColor: "#3AA385",
+    padding: 16,
+    paddingBottom: 32,
+  },
+  trackingTitle: {
+    fontSize: 16,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    textAlign: "left",
+    marginBottom: 16,
+    backgroundColor: "#F7F5E1",
+    padding: 8,
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  trackingItemsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 8,
   },
   trackingItem: {
-    flexDirection: "row",
+    flex: 1,
+    backgroundColor: "#F7F5E1",
+    padding: 12,
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
     alignItems: "center",
-    marginBottom: 12,
-    justifyContent: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(0, 0, 0, 0.1)",
-    borderStyle: "dashed",
-    paddingBottom: 8,
   },
-  trackingText: {
+  trackingLabel: {
+    fontSize: 12,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    marginBottom: 4,
+  },
+  trackingValue: {
     fontSize: 14,
     fontFamily: "Minecraft",
     color: "#000000",
-    textAlign: "center",
-    textTransform: "uppercase",
   },
   modalOverlay: {
     flex: 1,
