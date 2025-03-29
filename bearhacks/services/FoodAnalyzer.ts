@@ -616,12 +616,25 @@ export class FoodAnalyzer {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("API Error:", data);
-        throw new Error(data.status?.description || "API request failed");
+        console.error("Clarifai API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+        });
+        throw new Error(
+          `Clarifai API request failed: ${
+            data.status?.description || response.statusText
+          }`
+        );
+      }
+
+      if (!data.outputs?.[0]?.data?.concepts) {
+        console.error("Invalid Clarifai API response:", data);
+        throw new Error("Invalid API response format");
       }
 
       // Process results
-      const concepts = data.outputs?.[0]?.data?.concepts || [];
+      const concepts = data.outputs[0].data.concepts;
       const labels = concepts.map((c: any) => c.name);
 
       // Calculate health score based on detected labels
@@ -663,7 +676,7 @@ export class FoodAnalyzer {
       };
     } catch (error) {
       console.error("Error analyzing food image:", error);
-      return { isHealthy: false };
+      throw error; // Re-throw to handle in UI
     }
   }
 

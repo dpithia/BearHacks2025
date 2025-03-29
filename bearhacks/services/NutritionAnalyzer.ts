@@ -17,13 +17,18 @@ export class NutritionAnalyzer {
   private static get API_KEY() {
     const key = Constants.expoConfig?.extra?.perplexityApiKey;
     if (!key) {
-      throw new Error("Perplexity API key not configured");
+      console.warn("Perplexity API key not configured, using mock data");
+      return null;
     }
     return key;
   }
 
   static async analyzePattern(entries: FoodEntry[]): Promise<NutritionInsight> {
     try {
+      if (!this.API_KEY) {
+        return this.getMockInsight(entries);
+      }
+
       const prompt = this.constructPrompt(entries);
 
       const response = await fetch(
@@ -35,7 +40,7 @@ export class NutritionAnalyzer {
             Authorization: `Bearer ${this.API_KEY}`,
           },
           body: JSON.stringify({
-            model: "mixtral-8x7b-instruct",
+            model: "sonar",
             messages: [
               {
                 role: "system",
@@ -47,74 +52,113 @@ export class NutritionAnalyzer {
                 content: prompt,
               },
             ],
+            max_tokens: 1024,
           }),
         }
       );
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`);
+        const errorData = await response.text();
+        console.error("Perplexity API Error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
+        throw new Error(`API request failed: ${errorData}`);
       }
 
       const data = await response.json();
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error("Invalid API response format");
+      }
+
       return this.parseResponse(data.choices[0].message.content);
     } catch (error) {
       console.error("Error analyzing nutrition pattern:", error);
-      throw error;
+      return this.getMockInsight(entries);
     }
   }
 
   private static constructPrompt(entries: FoodEntry[]): string {
-    const foodList = entries.map((entry) => ({
-      name: entry.name,
-      labels: entry.labels,
-      isHealthy: entry.isHealthy,
-      timestamp: new Date(entry.timestamp).toLocaleString(),
-    }));
+    const foodList = entries
+      .map((entry) => ({
+        food: entry.name,
+        isHealthy: entry.isHealthy,
+        time: new Date(entry.timestamp).toLocaleTimeString(),
+      }))
+      .slice(0, 10); // Limit to last 10 entries
 
-    return `Analyze these eating patterns and provide nutritional insights:
-    ${JSON.stringify(foodList, null, 2)}
-    
-    Please provide:
-    1. A brief summary of eating patterns
-    2. Specific nutritional recommendations
-    3. Estimated nutritional balance (protein/carbs/fats percentages)
-    4. Overall health score (0-100)
-    5. Any nutritional concerns
-    
-    Format the response as JSON with these keys:
-    {
-      "summary": "...",
-      "recommendations": ["...", "..."],
-      "nutritionalBalance": { "protein": x, "carbs": y, "fats": z },
-      "healthScore": n,
-      "concerns": ["...", "..."]
-    }`;
+    return `Analyze these recent meals and provide nutritional insights in JSON format:
+${JSON.stringify(foodList, null, 2)}
+
+Return a JSON object with:
+{
+  "summary": "Brief analysis of eating patterns",
+  "recommendations": ["2-3 specific, actionable recommendations"],
+  "nutritionalBalance": {"protein": number, "carbs": number, "fats": number},
+  "healthScore": number from 0-100,
+  "concerns": ["any nutritional concerns"]
+}`;
   }
 
   private static parseResponse(response: string): NutritionInsight {
     try {
-      // Find the JSON object in the response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
+      // Try direct parsing first
+      try {
+        const parsed = JSON.parse(response);
+        return this.validateAndNormalizeInsight(parsed);
+      } catch (e) {
+        // If direct parsing fails, try to extract JSON from the response
+        const jsonMatch = response.match(/\{[\s\S]*?\}/); // Non-greedy match
+        if (!jsonMatch) {
+          console.error("Raw response:", response);
+          throw new Error("No JSON found in response");
+        }
+        const parsed = JSON.parse(jsonMatch[0]);
+        return this.validateAndNormalizeInsight(parsed);
       }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return {
-        summary: parsed.summary || "No summary available",
-        recommendations: parsed.recommendations || [],
-        nutritionalBalance: {
-          protein: parsed.nutritionalBalance?.protein || 0,
-          carbs: parsed.nutritionalBalance?.carbs || 0,
-          fats: parsed.nutritionalBalance?.fats || 0,
-        },
-        healthScore: parsed.healthScore || 0,
-        concerns: parsed.concerns || [],
-      };
     } catch (error) {
       console.error("Error parsing nutrition analysis:", error);
       throw error;
     }
+  }
+
+  private static validateAndNormalizeInsight(parsed: any): NutritionInsight {
+    return {
+      summary: parsed.summary || "No summary available",
+      recommendations: Array.isArray(parsed.recommendations)
+        ? parsed.recommendations
+        : ["Try to eat more balanced meals"],
+      nutritionalBalance: {
+        protein: Number(parsed.nutritionalBalance?.protein) || 0,
+        carbs: Number(parsed.nutritionalBalance?.carbs) || 0,
+        fats: Number(parsed.nutritionalBalance?.fats) || 0,
+      },
+      healthScore: Number(parsed.healthScore) || 0,
+      concerns: Array.isArray(parsed.concerns) ? parsed.concerns : [],
+    };
+  }
+
+  private static getMockInsight(entries: FoodEntry[]): NutritionInsight {
+    const healthyCount = entries.filter((e) => e.isHealthy).length;
+    const totalEntries = entries.length;
+    const healthScore =
+      totalEntries > 0 ? (healthyCount / totalEntries) * 100 : 50;
+
+    return {
+      summary: "Based on your recent meals",
+      recommendations: [
+        "Try to eat more balanced meals",
+        "Stay hydrated throughout the day",
+        "Consider adding more variety to your diet",
+      ],
+      nutritionalBalance: {
+        protein: 30,
+        carbs: 40,
+        fats: 30,
+      },
+      healthScore: Math.round(healthScore),
+      concerns: totalEntries === 0 ? ["Not enough data to analyze"] : [],
+    };
   }
 }

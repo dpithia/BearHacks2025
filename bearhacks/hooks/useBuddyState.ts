@@ -54,9 +54,14 @@ export const useBuddyState = (initialState?: BuddyState | null) => {
         ...newState,
       } as BuddyState;
 
-      await saveBuddyState(updatedState);
+      // Update local state immediately
       setBuddyState(updatedState);
+
+      // Then update server
+      await saveBuddyState(updatedState);
     } catch (error) {
+      // Revert to previous state on error
+      setBuddyState(buddyState);
       console.error("Error updating buddy state:", error);
       throw error;
     }

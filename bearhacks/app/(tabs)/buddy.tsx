@@ -223,13 +223,13 @@ export default function BuddyScreen() {
 
     const cups = parseInt(waterAmount, 10) || 1;
     const newWaterConsumed = Math.round((buddyState.waterConsumed || 0) + cups);
+    const newHp = Math.min(100, Math.round(buddyState.hp + cups * 2));
 
-    await updateBuddyState({
-      hp: Math.min(100, Math.round(buddyState.hp + cups * 2)),
-      waterConsumed: newWaterConsumed,
-      lastDrank: new Date().toISOString(),
-    });
+    // Close modal and reset input immediately
+    setWaterModalVisible(false);
+    setWaterAmount("1");
 
+    // Show feedback immediately
     Alert.alert(
       "Refreshing!",
       `${buddyState.name} has had ${cups} cup${
@@ -237,8 +237,20 @@ export default function BuddyScreen() {
       } of water! That's ${newWaterConsumed} cups today.`
     );
 
-    setWaterModalVisible(false);
-    setWaterAmount("1");
+    try {
+      // Update state
+      const update = {
+        hp: newHp,
+        waterConsumed: newWaterConsumed,
+        lastDrank: new Date().toISOString(),
+      };
+
+      // Update server
+      await updateBuddyState(update);
+    } catch (error) {
+      console.error("Failed to update water:", error);
+      Alert.alert("Error", "Failed to update water. Please try again.");
+    }
   };
 
   // Modify sleep handling to prevent race conditions
@@ -443,7 +455,9 @@ export default function BuddyScreen() {
           <View style={styles.statusBarWrapper}>
             <View style={styles.statusLabelContainer}>
               <Text style={styles.statusLabel}>HUNGER</Text>
-              <Text style={styles.statusValue}>{Math.round(buddyState.hp)}/100</Text>
+              <Text style={styles.statusValue}>
+                {Math.round(buddyState.hp)}/100
+              </Text>
             </View>
             <View style={styles.statusBarBackground}>
               <View
@@ -459,13 +473,18 @@ export default function BuddyScreen() {
           <View style={styles.statusBarWrapper}>
             <View style={styles.statusLabelContainer}>
               <Text style={styles.statusLabel}>ENERGY</Text>
-              <Text style={styles.statusValue}>{Math.round(buddyState.energy)}/100</Text>
+              <Text style={styles.statusValue}>
+                {Math.round(buddyState.energy)}/100
+              </Text>
             </View>
             <View style={styles.statusBarBackground}>
               <View
                 style={[
                   styles.statusBarFill,
-                  { width: `${buddyState.energy}%`, backgroundColor: "#8977b6" },
+                  {
+                    width: `${buddyState.energy}%`,
+                    backgroundColor: "#8977b6",
+                  },
                 ]}
               />
             </View>
@@ -475,15 +494,23 @@ export default function BuddyScreen() {
           <View style={styles.statusBarWrapper}>
             <View style={styles.statusLabelContainer}>
               <Text style={styles.statusLabel}>HYDRATION</Text>
-              <Text style={styles.statusValue}>{Math.round((buddyState.waterConsumed || 0) / WATER_GOAL * 100)}/100</Text>
+              <Text style={styles.statusValue}>
+                {Math.round(
+                  ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
+                )}
+                /100
+              </Text>
             </View>
             <View style={styles.statusBarBackground}>
               <View
                 style={[
                   styles.statusBarFill,
-                  { 
-                    width: `${Math.min(100, ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100)}%`,
-                    backgroundColor: "#4FC3F7"
+                  {
+                    width: `${Math.min(
+                      100,
+                      ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
+                    )}%`,
+                    backgroundColor: "#4FC3F7",
                   },
                 ]}
               />
@@ -492,10 +519,21 @@ export default function BuddyScreen() {
         </View>
 
         {/* Buddy image */}
-        <View style={[styles.buddyImageContainer, buddyState.isSleeping && styles.sleepingBuddy]}>
-          <Text style={styles.buddyEmoji}>
-            {buddyState.isSleeping ? "💤" : buddyState.imageUrl}
-          </Text>
+        <View
+          style={[
+            styles.buddyImageContainer,
+            buddyState.isSleeping && styles.sleepingBuddy,
+          ]}
+        >
+          <Image
+            source={
+              buddyState.isSleeping
+                ? require("../../assets/gifs/blackcatsleep.gif")
+                : require("../../assets/gifs/blackcatidle.gif")
+            }
+            style={styles.buddyGif}
+            resizeMode="stretch"
+          />
         </View>
 
         {/* Action buttons */}
@@ -529,7 +567,8 @@ export default function BuddyScreen() {
         <View style={styles.trackingContainer}>
           <View style={styles.trackingItem}>
             <Text style={styles.trackingText}>
-              SLEEP: {buddyState.lastSleepDate === new Date().toDateString()
+              SLEEP:{" "}
+              {buddyState.lastSleepDate === new Date().toDateString()
                 ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
                 : "0h"}
             </Text>
@@ -575,7 +614,9 @@ export default function BuddyScreen() {
                     setWaterAmount("1");
                   }}
                 >
-                  <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>CANCEL</Text>
+                  <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
+                    CANCEL
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -597,7 +638,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#3AA385", // pixel-green
-    paddingTop: Platform.OS === 'ios' ? 47 : 0,
+    paddingTop: Platform.OS === "ios" ? 47 : 0,
   },
   container: {
     flex: 1,
@@ -647,9 +688,9 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   buddyImageContainer: {
-    width: 160,
-    height: 160,
-    backgroundColor: "#FFFCEE", // pixel-cream-light
+    width: 175,
+    height: 175,
+    backgroundColor: "#FFFCEE",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 4,
@@ -664,14 +705,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 0,
     elevation: 5,
+    overflow: "hidden",
   },
   sleepingBuddy: {
     backgroundColor: "#F7F5E1", // pixel-cream
   },
-  buddyEmoji: {
-    fontSize: 80,
-    textAlign: "center",
-    lineHeight: 120,
+  buddyGif: {
+    width: "50%",
+    height: "50%",
   },
   statusContainer: {
     width: "100%",

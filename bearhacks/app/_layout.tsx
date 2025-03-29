@@ -212,6 +212,7 @@ export default function RootLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen name="+not-found" options={{ title: "Oops!" }} />
     </Stack>
   );
 }
