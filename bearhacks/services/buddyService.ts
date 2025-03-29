@@ -14,7 +14,6 @@ export interface BuddyState {
   totalSleepHours: number;
   lastSleepDate: string | null;
   waterConsumed: number;
-  lastSlept: string | null;
 }
 
 interface BuddyCheckResult {
@@ -141,7 +140,6 @@ export const saveBuddyState = async (state: BuddyState): Promise<void> => {
       total_sleep_hours: Math.round(state.totalSleepHours * 100) / 100, // Keep 2 decimal places
       last_sleep_date: state.lastSleepDate,
       water_consumed: Math.round(state.waterConsumed),
-      last_slept: state.lastSlept,
     };
 
     console.warn("[saveBuddyState] Saving buddy data:", buddyData);
@@ -198,7 +196,6 @@ export const loadBuddyState = async (): Promise<BuddyState | null> => {
       totalSleepHours: buddy.total_sleep_hours,
       lastSleepDate: buddy.last_sleep_date,
       waterConsumed: buddy.water_consumed,
-      lastSlept: buddy.last_slept,
     };
 
     console.warn("[loadBuddyState] Loaded buddy state:", buddyState);

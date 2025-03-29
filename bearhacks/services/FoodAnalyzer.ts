@@ -251,569 +251,339 @@ export class FoodAnalyzer {
     "squash blossoms",
     "squid",
     "star fruit",
+    "stir-fry",
     "strawberry",
     "string bean",
     "sturgeon",
-    "sugar apple",
-    "sugar snap pea",
+    "succotash",
     "summer squash",
-    "sunflower seed",
+    "sunflower seeds",
     "sushi",
-    "swede",
-    "sweet pepper",
     "sweet potato",
     "swiss chard",
-    "swordfish",
-    "tabbouleh",
-    "tangelo",
+    "tabouli",
+    "tamarind",
     "tangerine",
-    "tapioca",
-    "taro",
-    "tarragon",
-    "tea",
-    "teff",
-    "tempeh",
-    "thyme",
-    "tilapia",
+    "tempura",
     "tofu",
     "tomatillo",
     "tomato",
     "trout",
     "tuna",
     "turkey breast",
-    "turmeric",
     "turnip",
-    "ugli fruit",
-    "vegetable broth",
-    "vegetable soup",
-    "wakame",
-    "walnut",
+    "venison",
+    "vermicelli",
     "water chestnut",
     "watercress",
     "watermelon",
-    "wheat",
-    "wild rice",
+    "winter melon",
     "yam",
-    "yoghurt",
+    "yardlong bean",
+    "yellow summer squash",
+    "yogurt",
     "zucchini",
   ];
 
   private static unhealthyFoodKeywords = [
     // Original keywords retained
     "fried",
-    "sugary",
-    "processed",
-    "fast food",
-    "creamy",
-    "greasy",
-    "rich",
-    "syrup",
-    "sweet",
     "candy",
     "chocolate",
-    "pastry",
-    "dessert",
+    "ice cream",
+    "burger",
+    "pizza",
+    "soda",
+    "chips",
+    "cake",
+    "processed",
 
     // Unhealthy foods from Clarifai taxonomy
-    "adobo",
-    "aglio olio",
-    "american cheese",
-    "american fried rice",
-    "angel food cake",
-    "animal crackers",
-    "antipasto",
     "apple pie",
-    "arancini",
     "bacon",
     "bagel",
     "baguette",
+    "baked alaska",
     "baklava",
-    "banana bread",
-    "banana split",
-    "bánh mì",
-    "bao",
-    "barbecue",
-    "barbecue ribs",
-    "bear claw",
-    "beef jerky",
-    "beef patty",
-    "beef stew",
-    "beef stroganoff",
+    "beef",
+    "beef carpaccio",
+    "beef steak",
     "beef tartare",
-    "beer",
-    "beignet",
-    "berry crumble",
-    "bibimbap",
-    "biscuit",
-    "bison",
-    "black forest cake",
-    "black pudding",
-    "bloody mary",
+    "beignets",
+    "birthday cake",
+    "biscuits",
+    "blood sausage",
     "blue cheese",
-    "bluefish",
-    "bologna",
-    "bolognese",
-    "bombe glacée",
-    "boston cream pie",
-    "bouillabaisse",
-    "bratwurst",
+    "blueberry pie",
+    "bonbon",
     "bread",
     "bread pudding",
-    "breadsticks",
-    "breakfast burrito",
-    "breakfast sausage",
+    "bread rolls",
+    "breadstick",
+    "brie",
     "brioche",
+    "brisket",
+    "brittle",
     "brownie",
-    "bruschetta",
-    "bubble tea",
-    "bulgogi",
-    "bun",
+    "brulee",
     "burrito",
     "butter",
-    "butter chicken",
-    "butter cookie",
-    "buttercream",
-    "buttermilk",
-    "butternut squash",
-    "buttery",
-    "cake",
+    "caesar salad",
+    "cake pop",
     "calamari",
-    "calzone",
-    "canapé",
+    "camembert",
+    "canape",
     "candy apple",
     "candy bar",
-    "cannelloni",
     "cannoli",
-    "caramel",
-    "carbonara",
+    "caramel apple",
+    "carpaccio",
     "carrot cake",
-    "cashew cookie",
     "casserole",
     "caviar",
-    "celery soup",
     "cereal",
     "ceviche",
-    "cha siu bao",
-    "challah",
-    "chana masala",
     "cheddar",
     "cheese",
-    "cheese balls",
-    "cheese platter",
-    "cheese puffs",
     "cheeseburger",
     "cheesecake",
-    "cheesesteak",
-    "cherry pie",
-    "chewing gum",
-    "chicken korma",
-    "chicken marsala",
-    "chicken nugget",
-    "chicken noodle soup",
-    "chicken parmesan",
-    "chicken pot pie",
-    "chicken satay",
-    "chicken shawarma",
-    "chicken soup",
-    "chicken tikka masala",
-    "chicken wing",
+    "chicken curry",
+    "chicken leg",
+    "chicken wings",
     "chili",
-    "chili con carne",
-    "chimichanga",
-    "chinese broccoli",
-    "chip",
-    "chipotle",
-    "chitterlings",
-    "chocolate bar",
-    "chocolate cake",
-    "chocolate chip cookie",
-    "chocolate ice cream",
-    "chocolate mousse",
-    "chocolate pudding",
-    "chocolate sauce",
-    "chocolate syrup",
-    "chops",
+    "chili pepper",
     "chorizo",
-    "chow mein",
     "chowder",
-    "churro",
+    "churros",
+    "chutney",
     "ciabatta",
     "cinnamon roll",
-    "club sandwich",
+    "clam chowder",
     "cobbler",
-    "cocktail",
-    "coffee",
-    "coffee cake",
+    "cockle",
     "coleslaw",
-    "congee",
+    "compote",
     "cookie",
-    "corn dog",
-    "corn flakes",
-    "cornbread",
+    "corn bread",
     "corned beef",
-    "cornish hen",
-    "cornmeal",
-    "cornstarch",
-    "couscous salad",
-    "crab cake",
+    "cornflakes",
+    "crab cakes",
     "cracker",
-    "cranberry sauce",
-    "cream",
-    "cream cheese",
-    "cream cheese frosting",
-    "cream puff",
-    "crème brûlée",
+    "creme brulee",
     "crepe",
+    "crescent roll",
     "crispbread",
     "croissant",
+    "croque madame",
     "croquette",
     "crouton",
-    "crudités",
-    "crumble",
-    "crumpet",
-    "cuban sandwich",
+    "crunch",
     "cupcake",
-    "curry",
     "custard",
-    "custard pie",
     "danish pastry",
-    "dark chocolate",
-    "deep fried",
     "deviled eggs",
-    "dim sum",
-    "dip",
-    "dogfish",
-    "dolmades",
-    "donut",
-    "double cheeseburger",
     "dough",
     "doughnut",
     "dumpling",
-    "éclair",
-    "egg",
-    "egg foo young",
-    "egg roll",
-    "egg salad",
-    "eggplant parmesan",
-    "empanada",
-    "enchilada",
-    "energy drink",
+    "durian",
+    "eclair",
+    "egg yolk",
+    "eggplant",
     "english muffin",
-    "escargot",
-    "espresso",
+    "escargots",
     "falafel",
-    "fast food",
-    "feta cheese",
+    "farfalle",
     "filet mignon",
+    "fillet of sole",
     "fish and chips",
-    "fish stick",
     "flan",
-    "flauta",
+    "flatbread",
     "focaccia",
     "foie gras",
     "fondue",
-    "fortune cookie",
+    "frankfurters",
+    "french bread",
     "french fries",
     "french onion soup",
     "french toast",
     "fried calamari",
-    "fried chicken",
-    "fried dough",
     "fried egg",
-    "fried fish",
-    "fried green tomatoes",
-    "fried onion",
-    "fried plantain",
     "fried rice",
-    "fried shrimp",
+    "frittata",
     "fritter",
-    "frosting",
-    "frozen custard",
     "frozen yogurt",
     "fruitcake",
     "fudge",
-    "funnel cake",
+    "fusilli",
     "galette",
-    "garam masala",
     "garlic bread",
-    "gelato",
-    "general tso chicken",
-    "ginger ale",
-    "gingerbread",
-    "gingerbread house",
+    "gazpacho",
+    "gherkin",
     "gnocchi",
-    "goose",
+    "gorgonzola",
+    "gouda",
     "goulash",
-    "granita",
-    "gravy",
+    "grilled cheese sandwich",
     "grits",
+    "ground beef",
     "guacamole",
+    "gyoza",
     "gyro",
-    "haggis",
+    "habanero pepper",
     "ham",
-    "ham and cheese sandwich",
     "hamburger",
-    "hard-boiled egg",
-    "hash browns",
+    "hash",
     "hot dog",
-    "hot fudge sundae",
-    "hot pocket",
-    "hot pot",
-    "hot sauce",
-    "hot wings",
-    "ice cream",
-    "ice cream cake",
-    "ice cream cone",
-    "ice cream sandwich",
-    "ice cream sundae",
-    "iced tea",
-    "italian sausage",
-    "jambalaya",
-    "jamon",
-    "jerky",
-    "jiaozi",
-    "julep",
-    "kabob",
-    "key lime pie",
-    "ketchup",
-    "kimchi",
-    "king cake",
-    "kung pao chicken",
-    "laddu",
+    "huevos rancheros",
+    "jalapeno",
+    "jelly beans",
+    "jordan almonds",
+    "kebab",
+    "kettle corn",
+    "knish",
     "lamb",
     "lamb chops",
     "lasagna",
-    "latke",
-    "lava cake",
-    "lemon meringue pie",
-    "lemonade",
-    "licorice",
-    "linguine",
-    "loaf",
+    "lobster bisque",
+    "loin",
+    "lollipop",
     "lox",
     "macaron",
     "macaroni",
-    "macaroni and cheese",
+    "macaroon",
     "mackerel",
-    "madeleine",
-    "malasada",
     "maple syrup",
-    "margarine",
-    "margarita",
     "marshmallow",
-    "martini",
     "marzipan",
     "mashed potatoes",
-    "masala",
-    "matzah ball soup",
-    "mayonnaise",
+    "meat",
+    "meat pie",
     "meatball",
     "meatloaf",
-    "melon ball",
     "meringue",
-    "milk",
-    "milk chocolate",
-    "milkshake",
-    "mincemeat",
-    "minestrone",
     "mochi",
-    "mojito",
-    "molasses",
-    "monkfish",
-    "monte cristo sandwich",
+    "mousse",
     "mozzarella",
-    "mozzarella sticks",
     "muffin",
+    "mutton",
     "nachos",
-    "naan",
-    "neapolitan ice cream",
-    "new york cheesecake",
+    "nigiri",
     "noodle",
     "nougat",
+    "nut",
+    "omelette",
     "onion rings",
-    "orange chicken",
-    "osso buco",
+    "pad thai",
     "paella",
     "pancake",
-    "panettone",
-    "panini",
+    "pancetta",
     "panna cotta",
     "parfait",
     "pasta",
     "pastrami",
-    "pâté",
-    "pb&j sandwich",
-    "peanut brittle",
-    "peanut butter",
-    "peanut butter cup",
-    "pecan pie",
+    "pastry",
+    "pate",
     "penne",
     "pepperoni",
-    "pesto",
-    "philly cheesesteak",
-    "phyllo dough",
-    "pickle",
-    "pierogi",
     "pie",
-    "pig",
-    "pigs in a blanket",
+    "pike",
     "pilaf",
     "pita bread",
-    "pizza",
-    "plantain",
     "polenta",
     "popcorn",
+    "popovers",
+    "poppy seed roll",
     "popsicle",
-    "pop tart",
     "pork",
-    "pork belly",
     "pork chop",
-    "porterhouse steak",
+    "pork pie",
+    "porridge",
     "pot roast",
-    "potato chips",
-    "potato salad",
     "poutine",
-    "pound cake",
     "praline",
     "pretzel",
     "prime rib",
     "prosciutto",
     "pudding",
-    "pulled pork",
-    "pumpkin pie",
-    "quesadilla",
-    "queso",
     "quiche",
-    "raclette",
+    "raisin bread",
     "ramen",
     "ravioli",
     "red velvet cake",
-    "reuben sandwich",
-    "rib eye steak",
-    "ribs",
-    "rigatoni",
+    "ribbon-cut pasta",
     "risotto",
-    "rock candy",
-    "rockfish",
-    "rocky road ice cream",
-    "roll",
-    "rotisserie chicken",
-    "rum baba",
-    "rum cake",
-    "rye bread",
+    "roast beef",
+    "roquefort",
     "salami",
     "salsa",
-    "saltine cracker",
     "samosa",
     "sandwich",
+    "sashimi",
+    "sauerkraut",
     "sausage",
-    "schnitzel",
+    "sausage roll",
+    "scampi",
     "scone",
-    "scrapple",
-    "seafood boil",
-    "sesame chicken",
-    "shepherd's pie",
-    "shortbread",
+    "seafood",
+    "sherbet",
+    "shish kebab",
     "shortcake",
-    "short ribs",
-    "sirloin steak",
-    "sloppy joe",
-    "slushie",
-    "smoothie",
-    "snail",
-    "soda",
+    "sirloin",
+    "slaw",
+    "smoked fish",
+    "smoked salmon",
+    "snapper",
+    "soda bread",
     "sorbet",
-    "soufflé",
-    "sourdough bread",
-    "sour cream",
-    "soymilk",
-    "spaghetti",
+    "souffle",
     "spaghetti bolognese",
-    "spanakopita",
-    "spareribs",
-    "spicy",
-    "sponge cake",
-    "spring roll",
+    "spaghetti carbonara",
+    "spare ribs",
+    "spring rolls",
     "sprinkles",
     "steak",
-    "stew",
-    "sticky toffee pudding",
-    "stir fry",
-    "strawberry ice cream",
-    "strawberry shortcake",
-    "stroganoff",
     "strudel",
     "stuffing",
-    "sub sandwich",
-    "sugar cookie",
-    "sukiyaki",
     "sundae",
-    "sweet and sour pork",
-    "sweetbreads",
-    "sweet roll",
     "swiss cheese",
-    "syrup",
-    "t bone steak",
-    "taco",
-    "taco salad",
-    "taffy",
-    "takoyaki",
+    "tacos",
+    "tagliatelle",
     "tamale",
-    "tandoori chicken",
     "tart",
-    "tempura",
-    "teriyaki chicken",
-    "tex-mex",
-    "thai iced tea",
-    "tikka masala",
+    "tartare",
+    "tenderloin",
     "tiramisu",
     "toast",
     "toffee",
-    "tomato soup",
+    "torte",
     "tortellini",
-    "tortilla",
     "tortilla chips",
-    "tres leches cake",
-    "trifle",
-    "tuna casserole",
-    "tuna melt",
-    "tuna salad",
-    "turkey burger",
-    "turnover",
-    "tzatziki",
-    "ube ice cream",
-    "udon",
-    "upside-down cake",
-    "vanilla ice cream",
-    "veal",
-    "veggie burger",
-    "velveeta",
-    "venison",
-    "vermicelli",
-    "vichyssoise",
+    "truffle",
+    "tuna tartare",
+    "turkey",
+    "wafer",
     "waffle",
-    "wasabi",
-    "welsh rarebit",
-    "white bread",
-    "white chocolate",
-    "whole milk",
+    "walnut",
+    "whipped cream",
     "whoopie pie",
-    "wine",
-    "wonton soup",
-    "wrap",
-    "yorkshire pudding",
-    "zabaglione",
   ];
-
+  /**
+   * Analyze a food image and determine if it's healthy
+   * @param imageUri URI of the captured image
+   * @returns Analysis result with isHealthy flag
+   */
   static async analyzeImage(imageUri: string): Promise<FoodAnalysisResult> {
-    console.log(`[FoodAnalyzer] Starting analysis for: ${imageUri}`);
-    const startTime = Date.now();
-
     try {
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      // Save image for future training and to photo library
+      await FoodAnalyzer.saveImageForTraining(imageUri);
+      await MediaLibrary.saveToLibraryAsync(imageUri);
+
+      // Convert image to base64
+      const base64Image = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
+      // Prepare the request body
       const raw = JSON.stringify({
         user_app_id: {
           user_id: USER_ID,
@@ -823,144 +593,119 @@ export class FoodAnalyzer {
           {
             data: {
               image: {
-                base64: base64,
+                base64: base64Image,
               },
             },
           },
         ],
       });
 
-      const requestOptions = {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Key ${CLARIFAI_PAT}`,
-        },
-        body: raw,
-      };
-
+      // Make API request
       const response = await fetch(
         `https://api.clarifai.com/v2/models/${MODEL_ID}/versions/${MODEL_VERSION_ID}/outputs`,
-        requestOptions
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            Authorization: "Key " + CLARIFAI_PAT,
+          },
+          body: raw,
+        }
       );
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error(
-          `[FoodAnalyzer] Clarifai API Error ${response.status}: ${errorBody}`
-        );
-        throw new Error(
-          `Clarifai API request failed with status ${response.status}`
-        );
-      }
 
       const data = await response.json();
 
-      if (
-        !data ||
-        !data.outputs ||
-        data.outputs.length === 0 ||
-        !data.outputs[0].data ||
-        !data.outputs[0].data.concepts
-      ) {
-        console.warn(
-          "[FoodAnalyzer] No concepts returned from Clarifai API",
-          data
-        );
-        // Optionally save the image if no concepts were returned
-        // await this.saveImageForTraining(imageUri);
-        return { isHealthy: false, labels: ["unknown"], confidence: 0 };
+      if (!response.ok) {
+        console.error("API Error:", data);
+        throw new Error(data.status?.description || "API request failed");
       }
 
-      const concepts = data.outputs[0].data.concepts;
-      const topConcept = concepts[0];
-      console.log(`[FoodAnalyzer] Top concept: ${topConcept.name}`);
+      // Process results
+      const concepts = data.outputs?.[0]?.data?.concepts || [];
+      const labels = concepts.map((c: any) => c.name);
 
-      const labels = concepts.map((c: any) => c.name.toLowerCase());
-      const highestConfidence = concepts[0].value;
+      // Calculate health score based on detected labels
+      let healthyScore = 0;
+      let unhealthyScore = 0;
 
-      // Simple scoring based on keywords
-      let healthScore = 0;
-      let matchingKeywords = [];
-
-      for (const label of labels) {
-        if (this.healthyFoodKeywords.includes(label)) {
-          healthScore++;
-          matchingKeywords.push(`+ ${label}`);
+      labels.forEach((label: string) => {
+        if (
+          this.healthyFoodKeywords.some((keyword) =>
+            label.toLowerCase().includes(keyword)
+          )
+        ) {
+          healthyScore += 1;
         }
-        if (this.unhealthyFoodKeywords.includes(label)) {
-          healthScore--;
-          matchingKeywords.push(`- ${label}`);
+        if (
+          this.unhealthyFoodKeywords.some((keyword) =>
+            label.toLowerCase().includes(keyword)
+          )
+        ) {
+          unhealthyScore += 1;
         }
-      }
+      });
 
-      const isHealthy = healthScore > 0;
+      const isHealthy = healthyScore > unhealthyScore;
+      const confidence = concepts[0]?.value || 0;
 
-      console.log(
-        `[FoodAnalyzer] Analysis complete. Healthy: ${isHealthy}, Score: ${healthScore}`
-      );
-      console.log(
-        `[FoodAnalyzer] Matching keywords: ${matchingKeywords.join(", ")}`
-      );
-
-      // Save image if confidence is low or result is unexpected
-      // if (highestConfidence < 0.8 || (isHealthy && healthScore < 2) || (!isHealthy && healthScore > -2)) {
-      //   await this.saveImageForTraining(imageUri);
-      // }
-
-      const endTime = Date.now();
-      console.log(`[FoodAnalyzer] Analysis took ${endTime - startTime}ms`);
+      console.log("Food Analysis Results:", {
+        labels: labels.slice(0, 5),
+        healthyScore,
+        unhealthyScore,
+        isHealthy,
+        confidence,
+      });
 
       return {
         isHealthy,
-        labels: labels,
-        confidence: highestConfidence,
+        labels: labels.slice(0, 5), // Top 5 labels
+        confidence,
       };
     } catch (error) {
-      console.error("[FoodAnalyzer] Error analyzing image:", error);
-      const endTime = Date.now();
-      console.log(
-        `[FoodAnalyzer] Analysis failed after ${endTime - startTime}ms`
-      );
-      // Consider saving images that caused errors for debugging
-      // await this.saveImageForTraining(imageUri);
-      return { isHealthy: false, labels: ["error"], confidence: 0 };
+      console.error("Error analyzing food image:", error);
+      return { isHealthy: false };
     }
   }
 
+  /**
+   * Save a copy of the image to a dedicated directory for future training
+   * @param imageUri URI of the captured image
+   */
   private static async saveImageForTraining(imageUri: string): Promise<void> {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        console.warn(
-          "[FoodAnalyzer] Media Library permission denied, cannot save image."
-        );
-        return;
-      }
+    const foodImagesDir = `${FileSystem.documentDirectory}food_images/`;
+    const dirInfo = await FileSystem.getInfoAsync(foodImagesDir);
 
-      const asset = await MediaLibrary.createAssetAsync(imageUri);
-      const album = await MediaLibrary.getAlbumAsync("FoodTraining");
-      if (album == null) {
-        await MediaLibrary.createAlbumAsync("FoodTraining", asset, false);
-      } else {
-        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-      }
-      console.log(`[FoodAnalyzer] Saved image for training: ${asset.uri}`);
-    } catch (error) {
-      console.error("[FoodAnalyzer] Error saving image for training:", error);
+    // Create directory if it doesn't exist
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(foodImagesDir, {
+        intermediates: true,
+      });
     }
+
+    // Save image with timestamp
+    const timestamp = new Date().getTime();
+    const newImageUri = `${foodImagesDir}food_${timestamp}.jpg`;
+    await FileSystem.copyAsync({
+      from: imageUri,
+      to: newImageUri,
+    });
   }
 
+  /**
+   * PLACEHOLDER - This function will be implemented in the future to use TensorFlow.js
+   * to analyze the image and determine if it's healthy food
+   */
   private static async analyzeFoodWithTensorFlow(
     imageUri: string
   ): Promise<boolean> {
-    // Placeholder function: Replace with actual TensorFlow model loading and inference
-    console.warn(
-      "TensorFlow analysis is not implemented yet. Returning placeholder result."
-    );
-    // Simulate asynchronous operation
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    // Placeholder logic
-    return Math.random() > 0.5; // Randomly return true or false
+    // This will be implemented in the future when we integrate TensorFlow
+
+    // Example code structure that would go here:
+    // 1. Load the TensorFlow model
+    // 2. Preprocess the image
+    // 3. Run inference with the model
+    // 4. Process and return the result
+
+    return true; // Placeholder return
   }
 }
