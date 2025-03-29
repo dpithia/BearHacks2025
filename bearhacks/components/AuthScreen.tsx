@@ -6,6 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ImageBackground,
+  Platform,
+  SafeAreaView,
 } from "react-native";
 import { supabase } from "../services/supabase";
 
@@ -44,113 +47,188 @@ const AuthScreen: React.FC<AuthScreenProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Welcome Back!</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>SIGN IN</Text>
+        </View>
+        
+        <View style={styles.contentContainer}>
+          <ImageBackground
+            style={styles.gridBackground}
+            source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAOxAAADsQBlSsOGwAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAPdEVYdFRpdGxlAEdyaWQgUGF0dGVybtVVVkEAAAAadEVYdEF1dGhvcgBHcmlkIFBhdHRlcm4gQ3JlYXRvcl/YEg8AAAAhdEVYdERlc2NyaXB0aW9uAEdyaWQgUGF0dGVybiBDcmVhdG9yZGdkZAAAABd0RVh0Q3JlYXRpb24gVGltZQAyMDIzLTExLTI4W4RJnQAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAVdEVYdFRlY2huaXF1ZQBHcmlkIFBhdHRlcm6q5ZCEAAAAI3RFWHRUaW1lIFN0YW1wADIwMjMtMTEtMjggMTI6NDc6NDQgKzAwMDCwYJKGAAAAFXRFWHRDb3B5cmlnaHQAUHVibGljIERvbWFpbqHjYtcAAAAKdEVYdExpY2Vuc2UAQ0MwcsR8oAAAAApJREFUWIXt1j1IVGEYxvHfvXNmdWd3Z3fHj9bVVVdXV0VFRUVFRUVF7SNCiIiIiIgQIiIiIkSIiBARESEiQoSIEBEhIiIiQoiIiAgRIiIiIkKIiIiIiAgR4tR5Z+acOTPn7MfMzNz3geeF93mf+7kP7/ty4MCBAwd2GwngKDAP/AYywHOgY7eD7QYagFlAX2PNAc27GbIdeA/YQC6wbGAKOLKbQRuBN0ARyAMvgVEgDHwEVKAAvNrNoI3AJFAGvgGngRBQB5wD5oEScHQ3gzYAz4AK8BE4CQSBEHABWASWgBO7GbQemACqwBfgLOAHgsBFYAlYBk7tZtB6YByQwDxwHvACfuAy8B1YAc7sZtA6YAyQwFfgEuAGvMBV4AewClzYzaC1wCiggG/ADcAFuIEbwE9gDbgE2LsZdi0PAQv4AdwEnEAAuAX8AtaBK7sd9j4ggVXgDuAAAsAdYAP4A1zf7bD3gCqwBtwFbCAA3AM2gU3gJmDtdtgRQAXWgQeABQSAh8AWsAXcY4cPiDuAAmwAI0A1UAOMAlngL/CAHb5FbgEKsAmMAh6gBhgDckAOGGaHb/ENoALkgHHAC9QCE0AeyAMPgR0/RW4AFZAHJgEfUAc8BgpAARhihw+JK0AF2AKmgABQDzwBikARGGSHD6mrQBnIA9NACGgAngIloAQMsMOH5GWgDBSAp0AYaASeA2WgDPSzw4f0RaAMFIEZoBFoAl4AFaACPGKHD4kLQAUoAbNAM9AMvAQUQAH62OFD+hxQAcrAHNACtAKvARVQgV52+CnSC8hABZgH2oA24A2gARrQww4/xboBGSgDC0A70A68BTRAA7rZ4adoFyADZWAROAQcAt4BOqADXezwU7wTkIEysAR0AoeB94AO6MBDdvgp3gHIQBlYBo4AR4EPgA7oQCc7/C3SDshAGVgBjgHHgY+ADuhAOzv8LdYGyEAZWAWOAyeAT4AO6EArO/wt2grIQBlYA04CJ4HPgA7oQAs7/BRvBmSgDKwDp4DTwBdAB3TgPjt8SN8HyEAZ2ADOAJ3AV0AHdOAuO3xI3wXIQBnYBM4CXcA3QAd04A47fEjfBshAGcgC54Bu4DugAzpwix1+SN8CyEAZyAHngR7gB6ADOnCDHX5I3wDIQBnIA73AeeAnoAM6cI0dPqSvAzJQBgrABeAi8AvQAR24yg4f0lcBGSgDReAScBn4DeiADlxhhw/pK4AMlIES0A9cBf4AOqADl9nhQ/oyIANloAwMANeBv4AO6MAldrEDB/7X/AMRW5Q3E2KPbwAAAABJRU5ErkJggg=='}}
+            resizeMode="repeat"
+          >
+            <View style={styles.formContainer}>
+              <Text style={styles.label}>EMAIL</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your email addres"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoComplete="email"
+                placeholderTextColor="#666"
+              />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
-        />
+              <Text style={styles.label}>PASSWORD</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="password"
+                placeholderTextColor="#666"
+              />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-        />
+              <TouchableOpacity
+                style={styles.signInButton}
+                onPress={handleSignIn}
+                disabled={loading}
+              >
+                <Text style={styles.signInButtonText}>SIGN IN</Text>
+              </TouchableOpacity>
+            </View>
 
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleSignIn}
-          disabled={loading}
-        >
-          <Text style={styles.buttonText}>Sign In</Text>
-        </TouchableOpacity>
-
-        <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={onSignUpPress}>
-            <Text style={styles.signUpLink}>Sign up here</Text>
-          </TouchableOpacity>
+            <Text style={styles.signUpText}>DON'T HAVE AN ACCOUNT?</Text>
+            <TouchableOpacity style={styles.signUpButton} onPress={onSignUpPress}>
+              <Text style={styles.signUpButtonText}>SIGN UP</Text>
+            </TouchableOpacity>
+          </ImageBackground>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#3AA385", // pixel-green
+    paddingTop: Platform.OS === 'ios' ? 47 : 0, // Account for dynamic island
+  },
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#3AA385", // pixel-green
   },
-  formContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 15,
-    shadowColor: "#000",
+  header: {
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderBottomWidth: 4,
+    borderBottomColor: "#000000",
+    padding: 12,
+    shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
-  title: {
+  headerTitle: {
     fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontFamily: "Minecraft",
+    fontWeight: "400",
     textAlign: "center",
-    color: "#5D4037",
+    color: "#000000",
   },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: "center",
-    color: "#8D6E63",
+  contentContainer: {
+    flex: 1,
   },
-  input: {
-    backgroundColor: "#F5F5F5",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  button: {
-    backgroundColor: "#FFA000",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  signUpContainer: {
-    flexDirection: "row",
+  gridBackground: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 16,
+  },
+  formContainer: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#FFFCEE", // pixel-cream-light
+    borderWidth: 4,
+    borderColor: "#000000",
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 5,
+      height: 5,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+  },
+  label: {
+    fontSize: 16,
+    fontFamily: "Minecraft",
+    fontWeight: "400",
+    marginBottom: 8,
+    color: "#000000",
+  },
+  input: {
+    width: "100%",
+    height: 44,
+    backgroundColor: "#FFFCEE", // pixel-cream-light
+    borderWidth: 2,
+    borderColor: "#000000",
+    padding: 8,
+    marginBottom: 16,
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    color: "#000000",
+  },
+  signInButton: {
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderWidth: 2,
+    borderColor: "#000000",
+    padding: 12,
+    marginTop: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  signInButtonText: {
+    color: "#000000",
+    fontFamily: "Minecraft",
+    fontSize: 16,
+    fontWeight: "400",
+    textAlign: "center",
   },
   signUpText: {
-    color: "#757575",
+    color: "#000000",
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    fontWeight: "400",
+    marginBottom: 8,
   },
-  signUpLink: {
-    color: "#FFA000",
-    fontWeight: "bold",
+  signUpButton: {
+    backgroundColor: "#8977b6", // pixel-purple
+    borderWidth: 2,
+    borderColor: "#000000",
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  signUpButtonText: {
+    color: "#FFFCEE", // pixel-cream-light
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    fontWeight: "400",
+    textAlign: "center",
   },
 });
 
