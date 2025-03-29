@@ -34,11 +34,6 @@ const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
 const WATER_GOAL = 15; // Daily water goal in cups
 
-// Add new constants for step tracking and rewards
-const STEP_REWARD_THRESHOLD = 1000; // Reward HP every 1000 steps
-const STEP_REWARD_HP = 5; // HP points awarded per step threshold
-const MAX_DAILY_STEP_REWARDS = 50; // Maximum HP from steps per day
-
 // Debounce utility function
 const debounce = (func: Function, wait: number) => {
   let timeout: NodeJS.Timeout;
@@ -47,54 +42,6 @@ const debounce = (func: Function, wait: number) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
-
-// Add new UI components
-const ProgressBar = ({
-  value,
-  maxValue,
-  color,
-}: {
-  value: number;
-  maxValue: number;
-  color: string;
-}) => (
-  <View style={styles.progressBarContainer}>
-    <View
-      style={[
-        styles.progressBarFill,
-        {
-          width: `${(value / maxValue) * 100}%`,
-          backgroundColor: color,
-        },
-      ]}
-    />
-  </View>
-);
-
-const StatDisplay = ({
-  label,
-  value,
-  maxValue,
-  color,
-  icon,
-}: {
-  label: string;
-  value: number;
-  maxValue: number;
-  color: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}) => (
-  <View style={styles.statContainer}>
-    <View style={styles.statHeader}>
-      <Ionicons name={icon} size={20} color={color} />
-      <Text style={[styles.statLabel, { color }]}>{label}</Text>
-    </View>
-    <ProgressBar value={value} maxValue={maxValue} color={color} />
-    <Text style={[styles.statValue, { color }]}>
-      {Math.round(value)}/{maxValue}
-    </Text>
-  </View>
-);
 
 export default function BuddyScreen() {
   const { buddyState, isLoading, updateBuddyState } = useBuddyState();
@@ -122,12 +69,6 @@ export default function BuddyScreen() {
 
   // Add new state for tracking initial load
   const [hasInitializedStats, setHasInitializedStats] = useState(false);
-
-  // Add new state variables
-  const [lastStepReward, setLastStepReward] = useState<number>(0);
-  const [stepRewardsGiven, setStepRewardsGiven] = useState<number>(0);
-  const [sleepTransitioning, setSleepTransitioning] = useState<boolean>(false);
-  const [showStepReward, setShowStepReward] = useState<boolean>(false);
 
   // Debounced update function
   const debouncedUpdateStats = useCallback(
@@ -299,401 +240,490 @@ export default function BuddyScreen() {
     setWaterAmount("1");
   };
 
-  // Enhanced pedometer setup
+  // Modify sleep handling to prevent race conditions
+  const handleSleep = async () => {
+    if (!buddyState || isTogglingState) return;
+
+    try {
+      setIsTogglingState(true);
+      const currentSleepState = buddyState.isSleeping;
+      const now = new Date();
+
+      // Force a stats update before changing sleep state
+      await updateBuddyStats(true);
+
+      if (currentSleepState) {
+        // Waking up - calculate everything before update
+        const sleepStartTime = new Date(buddyState.sleepStartTime || now);
+        const today = now.toDateString();
+        const hoursSlept =
+          Math.round(
+            ((now.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60)) *
+              100
+          ) / 100;
+
+        // Single update call with all changes
+        await updateBuddyState({
+          isSleeping: false,
+          sleepStartTime: null,
+          energy: Math.min(
+            100,
+            Math.round(buddyState.energy + ENERGY_RECOVERY * hoursSlept)
+          ),
+          totalSleepHours:
+            Math.round(
+              (buddyState.lastSleepDate === today
+                ? (buddyState.totalSleepHours || 0) + hoursSlept
+                : hoursSlept) * 100
+            ) / 100,
+          lastSleepDate: today,
+          lastUpdated: now.toISOString(),
+        });
+
+        Alert.alert(
+          "Good morning!",
+          `${buddyState.name} slept for ${hoursSlept.toFixed(
+            1
+          )} hours and feels refreshed!`
+        );
+      } else {
+        // Going to sleep - single update
+        await updateBuddyState({
+          isSleeping: true,
+          sleepStartTime: now.toISOString(),
+          lastUpdated: now.toISOString(),
+        });
+
+        Alert.alert("Sleep tight!", `${buddyState.name} is now sleeping!`);
+      }
+    } finally {
+      // Add a small delay before allowing next toggle
+      setTimeout(() => setIsTogglingState(false), 500);
+    }
+  };
+
+  // Add handleSignOut function back
+  const handleSignOut = async () => {
+    try {
+      console.warn("[Auth] Signing out user");
+      // Just trigger the sign out - the auth state listener in RootLayout will handle navigation
+      await supabase.auth.signOut();
+      console.warn("[Auth] User signed out successfully");
+      // Remove direct navigation - let auth state change handle it
+    } catch (error) {
+      console.error("[Auth] Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out. Please try again.");
+    }
+  };
+
+  // Update useEffect hooks to prevent redundant updates
   useEffect(() => {
-    let subscription: any;
+    if (buddyState && !isLoading && !hasInitializedStats) {
+      // Initial stats update when buddy is loaded
+      updateBuddyStats(true);
+    }
+  }, [buddyState, isLoading, hasInitializedStats, updateBuddyStats]);
 
-    const setupPedometer = async () => {
+  // Periodic updates
+  useEffect(() => {
+    if (!buddyState || !hasInitializedStats) return;
+
+    const timer = setInterval(() => {
+      updateBuddyStats();
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, [buddyState, hasInitializedStats, updateBuddyStats]);
+
+  useEffect(() => {
+    (async () => {
+      await MediaLibrary.requestPermissionsAsync();
+    })();
+  }, []);
+
+  useEffect(() => {
+    let subscription: { remove: () => void } | null = null;
+
+    const subscribeToPedometer = async () => {
       try {
-        const { status } = await Pedometer.requestPermissionsAsync();
-        if (status === "granted") {
-          setIsPedometerAvailable(true);
-          const end = new Date();
-          const start = new Date();
-          start.setHours(0, 0, 0, 0);
+        const isAvailable = await Pedometer.isAvailableAsync();
+        setIsPedometerAvailable(isAvailable);
 
-          const { steps: initialSteps = 0 } =
-            (await Pedometer.getStepCountAsync(start, end)) || {};
-          setCurrentStepCount(initialSteps);
-          setLastStepReward(initialSteps);
-
-          subscription = Pedometer.watchStepCount((result) => {
+        if (isAvailable) {
+          subscription = await Pedometer.watchStepCount((result) => {
             setCurrentStepCount(result.steps);
-            checkStepRewards(result.steps);
+            if (buddyState) {
+              updateBuddyState({ steps: result.steps });
+            }
           });
         }
       } catch (error) {
-        console.error("Pedometer setup failed:", error);
+        console.error("Failed to set up pedometer:", error);
         setIsPedometerAvailable(false);
       }
     };
 
-    setupPedometer();
-    return () => subscription?.remove();
-  }, []);
+    subscribeToPedometer();
 
-  // Enhanced step reward system
-  const checkStepRewards = useCallback(
-    async (steps: number) => {
-      if (!buddyState || stepRewardsGiven >= MAX_DAILY_STEP_REWARDS) return;
-
-      const stepsSinceLastReward = steps - lastStepReward;
-      if (stepsSinceLastReward >= STEP_REWARD_THRESHOLD) {
-        const rewardsToGive = Math.floor(
-          stepsSinceLastReward / STEP_REWARD_THRESHOLD
-        );
-        const possibleRewards = Math.min(
-          rewardsToGive,
-          MAX_DAILY_STEP_REWARDS - stepRewardsGiven
-        );
-
-        if (possibleRewards > 0) {
-          const hpGain = possibleRewards * STEP_REWARD_HP;
-          await updateBuddyState({
-            hp: Math.min(100, buddyState.hp + hpGain),
-          });
-
-          setLastStepReward(steps);
-          setStepRewardsGiven((prev) => prev + possibleRewards);
-          setShowStepReward(true);
-          setTimeout(() => setShowStepReward(false), 3000);
-        }
-      }
-    },
-    [buddyState, lastStepReward, stepRewardsGiven]
-  );
-
-  // Enhanced sleep handling
-  const handleSleep = async () => {
-    if (!buddyState || isTogglingState || sleepTransitioning) return;
-
-    try {
-      setSleepTransitioning(true);
-      setIsTogglingState(true);
-
-      const currentSleepState = buddyState.isSleeping;
-      const now = new Date();
-
-      // Force a stat update before changing sleep state
-      await updateBuddyStats(true);
-
-      // Calculate sleep duration if waking up
-      let sleepDuration = 0;
-      if (currentSleepState && buddyState.lastSlept) {
-        sleepDuration =
-          (now.getTime() - new Date(buddyState.lastSlept).getTime()) /
-          (1000 * 60 * 60);
-      }
-
-      const updates: any = {
-        isSleeping: !currentSleepState,
-        lastSlept: !currentSleepState
-          ? now.toISOString()
-          : buddyState.lastSlept,
-      };
-
-      // Apply sleep benefits when waking up
-      if (currentSleepState && sleepDuration > 0) {
-        const energyGain = Math.round(ENERGY_RECOVERY * sleepDuration);
-        updates.energy = Math.min(100, buddyState.energy + energyGain);
-
-        // Bonus HP for good sleep (6-8 hours)
-        if (sleepDuration >= 6 && sleepDuration <= 8) {
-          updates.hp = Math.min(100, buddyState.hp + 10);
-        }
-      }
-
-      await updateBuddyState(updates);
-
-      // Show sleep feedback
-      if (!currentSleepState) {
-        Alert.alert(
-          "Sweet Dreams! 💤",
-          `${buddyState.name} is going to sleep. They'll recover energy while sleeping!`
-        );
-      } else if (sleepDuration > 0) {
-        Alert.alert(
-          "Rise and Shine! 🌅",
-          `${buddyState.name} slept for ${Math.round(
-            sleepDuration
-          )} hours and feels ${
-            sleepDuration >= 6 && sleepDuration <= 8 ? "great" : "better"
-          }!`
-        );
-      }
-    } finally {
-      setIsTogglingState(false);
-      setSleepTransitioning(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      // The auth subscription in _layout should handle navigation
-    } catch (error) {
-      console.error("Error signing out:", error);
-      Alert.alert("Error", "Failed to sign out");
-    }
-  };
-
-  // Periodic updates
-  useEffect(() => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    // Start a new timer
-    timerRef.current = setInterval(() => {
-      console.warn("[BuddyScreen] Timer tick: Running updateBuddyStats");
-      updateBuddyStats(false); // Don't force update on timer tick
-    }, 60 * 1000); // Update every minute
-
-    // Cleanup on unmount
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-        console.warn("[BuddyScreen] Cleared update timer");
+      if (subscription) {
+        subscription.remove();
       }
     };
-  }, [updateBuddyStats]);
+  }, [buddyState, updateBuddyState]);
 
-  // Initial state loading
+  // Effects
+  useEffect(() => {
+    if (!isLoading && !buddyState) {
+      console.warn(
+        "[BuddyScreen] No buddy state found, redirecting to creation"
+      );
+      router.replace("/(tabs)");
+    }
+  }, [isLoading, buddyState, router]);
+
+  // Show loading state
   if (isLoading || !buddyState) {
     return <SplashScreen />;
   }
 
-  // Calculate percentages
-  const hpPercentage = (buddyState.hp / 100) * 100;
-  const energyPercentage = (buddyState.energy / 100) * 100;
-  const waterPercentage = (buddyState.waterConsumed / WATER_GOAL) * 100;
+  // Camera view when taking a picture
+  if (cameraVisible) {
+    return (
+      <FoodCamera
+        onTakePicture={handlePictureTaken}
+        onCancel={() => setCameraVisible(false)}
+        buddyName={buddyState.name}
+      />
+    );
+  }
 
-  // UI Rendering
+  // Processing view when analyzing the image
+  if (processingImage) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.processingText}>Analyzing food...</Text>
+          {capturedImage && (
+            <Image
+              source={{ uri: capturedImage }}
+              style={styles.previewImage}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Normal buddy view
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{buddyState.name}</Text>
-        {isPedometerAvailable && (
-          <View style={styles.stepCounter}>
-            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
-            <Text style={styles.stepText}>
-              {currentStepCount}/{dailyStepGoal}
-            </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header buttons */}
+        <View style={styles.headerButtons}>
+          <TouchableOpacity style={styles.headerButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={24} color="#5D4037" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Loading indicator for stats update */}
+        {isUpdatingStats && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFA000" />
           </View>
         )}
-      </View>
 
-      <View style={styles.buddyContainer}>
-        <Text style={styles.buddyEmoji}>{buddyState.imageUrl}</Text>
-        {buddyState.isSleeping && (
-          <Text style={styles.sleepIndicator}>💤 Sleeping</Text>
-        )}
-      </View>
-
-      {/* Stats Section */}
-      <View style={styles.statsContainer}>
-        <StatDisplay
-          label="Health"
-          value={buddyState.hp}
-          maxValue={100}
-          color="#E53935"
-          icon="heart-outline"
-        />
-        <StatDisplay
-          label="Energy"
-          value={buddyState.energy}
-          maxValue={100}
-          color="#FFA000"
-          icon="battery-charging-outline"
-        />
-        <StatDisplay
-          label="Water"
-          value={buddyState.waterConsumed}
-          maxValue={WATER_GOAL}
-          color="#1E88E5"
-          icon="water-outline"
-        />
-      </View>
-
-      {/* Actions Section */}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setCameraVisible(true)}
-          disabled={processingImage || isUpdatingStats}
+        {/* Buddy name and image */}
+        <Text style={styles.buddyName}>{buddyState.name}</Text>
+        <View
+          style={[
+            styles.buddyImageContainer,
+            buddyState.isSleeping && styles.sleepingBuddy,
+          ]}
         >
-          <Ionicons name="camera-outline" size={24} color="#5D4037" />
-          <Text style={styles.actionButtonText}>Feed Buddy</Text>
-          {processingImage && (
-            <ActivityIndicator size="small" color="#5D4037" />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setWaterModalVisible(true)}
-          disabled={isUpdatingStats}
-        >
-          <Ionicons name="water-outline" size={24} color="#5D4037" />
-          <Text style={styles.actionButtonText}>Give Water</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleSleep}
-          disabled={isTogglingState || isUpdatingStats}
-        >
-          <Ionicons
-            name={buddyState.isSleeping ? "sunny-outline" : "moon-outline"}
-            size={24}
-            color="#5D4037"
-          />
-          <Text style={styles.actionButtonText}>
-            {buddyState.isSleeping ? "Wake Up" : "Sleep"}
+          <Text style={styles.buddyEmoji}>
+            {buddyState.isSleeping ? "💤" : buddyState.imageUrl}
           </Text>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      {/* Food Camera Modal */}
-      {cameraVisible && (
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={cameraVisible}
-          onRequestClose={() => setCameraVisible(false)}
-        >
-          <FoodCamera
-            onTakePicture={handlePictureTaken}
-            onCancel={() => setCameraVisible(false)}
-            buddyName={buddyState.name}
-          />
-        </Modal>
-      )}
+        {/* Status bars */}
+        <View style={styles.statusContainer}>
+          {/* HP Bar */}
+          <View style={styles.statusBarWrapper}>
+            <View style={styles.statusLabelContainer}>
+              <Text style={styles.statusEmoji}>❤️</Text>
+              <Text style={styles.statusLabel}>HP</Text>
+              <Text style={styles.statusValue}>
+                {Math.round(buddyState.hp)}%
+              </Text>
+            </View>
+            <View style={styles.statusBarBackground}>
+              <View
+                style={[
+                  styles.statusBarFill,
+                  { width: `${buddyState.hp}%`, backgroundColor: "#FF5252" },
+                ]}
+              />
+            </View>
+          </View>
 
-      {/* Water Intake Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={waterModalVisible}
-        onRequestClose={() => setWaterModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>How many cups?</Text>
-            <TextInput
-              style={styles.waterInput}
-              value={waterAmount}
-              onChangeText={setWaterAmount}
-              keyboardType="numeric"
-              placeholder="Cups"
-            />
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleWaterSubmit}
-              >
-                <Text style={styles.modalButtonText}>Add Water</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.modalCancelButton]}
-                onPress={() => setWaterModalVisible(false)}
-              >
-                <Text style={styles.modalButtonText}>Cancel</Text>
-              </TouchableOpacity>
+          {/* Energy Bar */}
+          <View style={styles.statusBarWrapper}>
+            <View style={styles.statusLabelContainer}>
+              <Text style={styles.statusEmoji}>⚡</Text>
+              <Text style={styles.statusLabel}>Energy</Text>
+              <Text style={styles.statusValue}>
+                {Math.round(buddyState.energy)}%
+              </Text>
+            </View>
+            <View style={styles.statusBarBackground}>
+              <View
+                style={[
+                  styles.statusBarFill,
+                  {
+                    width: `${buddyState.energy}%`,
+                    backgroundColor: "#FFD600",
+                  },
+                ]}
+              />
             </View>
           </View>
         </View>
-      </Modal>
 
-      {/* Step Reward Animation */}
-      {showStepReward && (
-        <View style={styles.stepRewardContainer}>
-          <Text style={styles.stepRewardText}>
-            +{STEP_REWARD_HP} HP from steps! 🏃‍♂️
-          </Text>
+        {/* Action buttons */}
+        <View style={styles.actionContainer}>
+          {/* Feed button */}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setCameraVisible(true)}
+          >
+            <Ionicons name="camera-outline" size={36} color="#5D4037" />
+            <Text style={styles.actionText}>Feed</Text>
+          </TouchableOpacity>
+
+          {/* Drink button */}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => setWaterModalVisible(true)}
+          >
+            <Ionicons name="water-outline" size={36} color="#5D4037" />
+            <Text style={styles.actionText}>Drink</Text>
+          </TouchableOpacity>
+
+          {/* Sleep/Wake button - restored to action buttons */}
+          <TouchableOpacity
+            style={[styles.actionButton, isTogglingState && { opacity: 0.5 }]}
+            onPress={handleSleep}
+            disabled={isTogglingState}
+          >
+            <Ionicons
+              name={buddyState.isSleeping ? "sunny-outline" : "bed-outline"}
+              size={36}
+              color="#5D4037"
+            />
+            <Text style={styles.actionText}>
+              {buddyState.isSleeping ? "Wake" : "Sleep"}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
+
+        {/* Tracking stats */}
+        <View style={styles.trackingContainer}>
+          {/* Sleep tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="bed-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {buddyState.lastSleepDate === new Date().toDateString()
+                ? `Slept ${
+                    buddyState.totalSleepHours?.toFixed(1) || 0
+                  } hours today`
+                : "No sleep recorded today"}
+            </Text>
+          </View>
+
+          {/* Water tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="water-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {`${
+                buddyState.waterConsumed || 0
+              } / ${WATER_GOAL} cups of water today`}
+            </Text>
+          </View>
+
+          {/* Water progress bar */}
+          <View style={styles.waterProgressContainer}>
+            <View style={styles.waterProgressBackground}>
+              <View
+                style={[
+                  styles.waterProgressFill,
+                  {
+                    width: `${Math.min(
+                      100,
+                      ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
+                    )}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Steps tracking */}
+          <View style={styles.trackingItem}>
+            <Ionicons name="footsteps-outline" size={24} color="#5D4037" />
+            <Text style={styles.trackingText}>
+              {isPedometerAvailable
+                ? `${currentStepCount} / ${dailyStepGoal} steps today`
+                : "Pedometer not available"}
+            </Text>
+          </View>
+
+          {/* Steps progress bar */}
+          {isPedometerAvailable && (
+            <View style={styles.waterProgressContainer}>
+              <View style={styles.waterProgressBackground}>
+                <View
+                  style={[
+                    styles.stepsProgressFill,
+                    {
+                      width: `${Math.min(
+                        100,
+                        (currentStepCount / dailyStepGoal) * 100
+                      )}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Water Modal */}
+        <Modal
+          visible={waterModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setWaterModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>How many cups of water?</Text>
+
+              <TextInput
+                style={styles.modalInput}
+                keyboardType="number-pad"
+                value={waterAmount}
+                onChangeText={setWaterAmount}
+                maxLength={2}
+              />
+
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalCancelButton]}
+                  onPress={() => {
+                    setWaterModalVisible(false);
+                    setWaterAmount("1");
+                  }}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={handleWaterSubmit}
+                >
+                  <Text style={styles.modalButtonText}>Confirm</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#FFF8E1",
+    // Add extra padding for Dynamic Island
     paddingTop: 60,
   },
-  header: {
-    flexDirection: "row",
+  container: {
+    flex: 1,
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 70,
   },
-  title: {
+  buddyName: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#5D4037",
-    marginRight: 20,
+    marginBottom: 10,
   },
-  buddyContainer: {
-    flexDirection: "row",
+  buddyImageContainer: {
+    width: 150,
+    height: 150,
+    backgroundColor: "#FFD54F",
+    borderRadius: 75,
+    justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    borderWidth: 3,
+    borderColor: "#FFA000",
+    marginBottom: 30,
+  },
+  sleepingBuddy: {
+    backgroundColor: "#E0E0E0",
+    borderColor: "#BDBDBD",
   },
   buddyEmoji: {
     fontSize: 80,
   },
-  sleepIndicator: {
-    fontSize: 16,
-    color: "#5D4037",
-    marginLeft: 10,
+  statusContainer: {
+    width: "100%",
+    marginBottom: 30,
   },
-  statsContainer: {
-    padding: 16,
+  statusBarWrapper: {
+    marginBottom: 16,
   },
-  statContainer: {
-    marginVertical: 8,
-    padding: 12,
-    backgroundColor: "white",
-    borderRadius: 12,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  statHeader: {
+  statusLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  statLabel: {
-    marginLeft: 8,
+  statusEmoji: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  statusLabel: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "#5D4037",
+    flex: 1,
   },
-  statValue: {
-    fontSize: 14,
-    textAlign: "right",
-    marginTop: 2,
-  },
-  pedometerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-  },
-  pedometerText: {
+  statusValue: {
     fontSize: 16,
     color: "#5D4037",
-    marginLeft: 10,
+    marginLeft: 8,
   },
-  actionsContainer: {
+  statusBarBackground: {
+    height: 20,
+    backgroundColor: "#EEEEEE",
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#D7CCC8",
+  },
+  statusBarFill: {
+    height: "100%",
+    borderRadius: 8,
+  },
+  actionContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
-    padding: 20,
+    marginBottom: 30,
   },
   actionButton: {
     backgroundColor: "#FFA000",
@@ -705,18 +735,69 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FF8F00",
   },
-  actionButtonText: {
+  actionText: {
     marginTop: 8,
     color: "#5D4037",
     fontWeight: "bold",
   },
-  modalContainer: {
+  processingText: {
+    fontSize: 24,
+    color: "#5D4037",
+    marginBottom: 20,
+  },
+  previewImage: {
+    width: 300,
+    height: 300,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  // Tracking styles
+  trackingContainer: {
+    width: "100%",
+    backgroundColor: "#FFF3E0",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#FFE0B2",
+  },
+  trackingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  trackingText: {
+    fontSize: 16,
+    color: "#5D4037",
+    marginLeft: 10,
+  },
+  waterProgressContainer: {
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  waterProgressBackground: {
+    height: 15,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  waterProgressFill: {
+    height: "100%",
+    backgroundColor: "#4FC3F7",
+    borderRadius: 10,
+  },
+  stepsProgressFill: {
+    height: "100%",
+    backgroundColor: "#66BB6A", // Green color for steps
+    borderRadius: 10,
+  },
+  // Modal styles
+  modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
+  modalContainer: {
     width: "80%",
     backgroundColor: "#FFF8E1",
     borderRadius: 16,
@@ -731,7 +812,7 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     marginBottom: 20,
   },
-  waterInput: {
+  modalInput: {
     backgroundColor: "white",
     width: "50%",
     height: 50,
@@ -743,7 +824,7 @@ const styles = StyleSheet.create({
     color: "#5D4037",
     marginBottom: 20,
   },
-  modalButtonContainer: {
+  modalButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "100%",
@@ -764,43 +845,28 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  stepRewardContainer: {
+  loadingOverlay: {
     position: "absolute",
-    top: "15%",
+    top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    justifyContent: "center",
     alignItems: "center",
-    zIndex: 999,
+    zIndex: 2,
   },
-  stepRewardText: {
-    backgroundColor: "rgba(255, 160, 0, 0.9)",
-    color: "white",
+  headerButtons: {
+    flexDirection: "row",
+    position: "absolute",
+    top: 16,
+    right: 16,
+    gap: 16,
+    zIndex: 1,
+  },
+  headerButton: {
     padding: 8,
     borderRadius: 8,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  progressBarContainer: {
-    height: 12,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 6,
-    overflow: "hidden",
-    marginVertical: 4,
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 6,
-  },
-  stepCounter: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#FFE0B2",
-    padding: 8,
-    borderRadius: 20,
-  },
-  stepText: {
-    marginLeft: 8,
-    color: "#5D4037",
-    fontWeight: "bold",
   },
 });
