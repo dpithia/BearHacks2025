@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Constants for game mechanics
-const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
+const NORMAL_HP_DECAY = 0.6; // HP points lost per hour normally
 const HUNGRY_HP_DECAY = 1.5; // HP points lost per hour when hungry
 const THIRSTY_HP_DECAY = 1.5; // HP points lost per hour when thirsty
 const HUNGRY_THRESHOLD = 6; // Hours until buddy gets hungry
