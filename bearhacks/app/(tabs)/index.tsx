@@ -5,95 +5,136 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Pressable,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import SplashScreen from "../../components/SplashScreen";
+import { saveBuddyState } from "../../services/buddyService";
+import { useBuddyState } from "../../hooks/useBuddyState";
 import { useFonts } from "expo-font";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [buddyName, setBuddyName] = useState<string>("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const { buddyState, isLoading: isBuddyLoading } = useBuddyState();
 
   const [fontsLoaded] = useFonts({
     Minecraft: require("../../assets/fonts/Minecraft.ttf"),
   });
 
-  // Emoji options (placeholders until we have sprites)
-  const buddyOptions = [
-    { emoji: "👤", name: "HUMAN" },
-    { emoji: "🐱", name: "CAT" },
-    { emoji: "🐕", name: "DOG" },
-    { emoji: "🐦", name: "BIRD" },
-  ];
+  // Emoji options
+  const emojiOptions = ["🐻", "🐼", "🐨", "🦊"];
 
-  // Simulate loading time
+  // Check if buddy exists and redirect if needed
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+    if (!isBuddyLoading && buddyState) {
+      console.warn("[HomeScreen] Buddy already exists, redirecting");
+      router.replace("/(tabs)/buddy");
+    }
+  }, [isBuddyLoading, buddyState, router]);
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading || !fontsLoaded) {
+  // Show loading state
+  if (isLoading || isBuddyLoading || !fontsLoaded) {
     return <SplashScreen appName="BearBuddy" />;
   }
 
+  // If buddy exists, don't show creation screen
+  if (buddyState) {
+    return null;
+  }
+
+  // Handle emoji selection
   const handleEmojiSelect = (emoji: string) => {
     setSelectedEmoji(emoji);
   };
 
+  // Handle buddy creation
+  const handleCreateBuddy = async () => {
+    if (!buddyName || !selectedEmoji || isCreating) return;
+
+    try {
+      setIsCreating(true);
+      console.warn("[HomeScreen] Creating new buddy:", {
+        buddyName,
+        selectedEmoji,
+      });
+
+      // Create buddy in Supabase
+      await saveBuddyState({
+        name: buddyName,
+        imageUrl: selectedEmoji,
+        hp: 100,
+        energy: 100,
+        steps: 0,
+        lastUpdated: new Date().toISOString(),
+        lastFed: null,
+        lastDrank: null,
+        isSleeping: false,
+        sleepStartTime: null,
+        totalSleepHours: 0,
+        lastSleepDate: null,
+        waterConsumed: 0,
+      });
+
+      console.warn(
+        "[HomeScreen] Buddy created successfully, navigating to buddy screen"
+      );
+      // Navigate to buddy screen
+      router.replace("/(tabs)/buddy");
+    } catch (error) {
+      console.error("[HomeScreen] Error creating buddy:", error);
+      Alert.alert("Error", "Failed to create buddy. Please try again.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>CREATE YOUR BUDDY</Text>
+      <Text style={styles.title}>CREATE YOUR BUDDY</Text>
 
-        <Text style={styles.label}>NAME YOUR BUDDY:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="MAX 12 CHARS"
-          placeholderTextColor="#9E9E9E"
-          value={buddyName}
-          onChangeText={setBuddyName}
-          maxLength={12}
-        />
+      {/* Name input */}
+      <TextInput
+        style={styles.input}
+        placeholder="ENTER BUDDY NAME"
+        placeholderTextColor="#9E9E9E"
+        value={buddyName}
+        onChangeText={setBuddyName}
+        maxLength={12}
+      />
 
-        <Text style={styles.label}>CHOOSE YOUR BUDDY:</Text>
-        <View style={styles.buddyGrid}>
-          {buddyOptions.map((buddy, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.buddyContainer,
-                selectedEmoji === buddy.emoji && styles.selectedBuddyContainer,
-              ]}
-              onPress={() => handleEmojiSelect(buddy.emoji)}
-            >
-              <Text style={styles.buddyEmoji}>{buddy.emoji}</Text>
-              <Text style={styles.buddyName}>{buddy.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.createButton,
-            (!buddyName || !selectedEmoji) && styles.disabledButton,
-          ]}
-          disabled={!buddyName || !selectedEmoji}
-          onPress={() => {
-            router.push({
-              pathname: "/buddy",
-              params: { name: buddyName, emoji: selectedEmoji },
-            });
-          }}
-        >
-          <Text style={styles.createButtonText}>CREATE</Text>
-        </TouchableOpacity>
+      {/* Emoji Grid */}
+      <View style={styles.emojiGrid}>
+        {emojiOptions.map((emoji, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.emojiContainer,
+              selectedEmoji === emoji && styles.selectedEmojiContainer,
+            ]}
+            onPress={() => handleEmojiSelect(emoji)}
+          >
+            <Text style={styles.emoji}>{emoji}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {/* Create Button */}
+      <TouchableOpacity
+        style={[
+          styles.createButton,
+          (!buddyName || !selectedEmoji || isCreating) && styles.disabledButton,
+        ]}
+        disabled={!buddyName || !selectedEmoji || isCreating}
+        onPress={handleCreateBuddy}
+      >
+        <Text style={styles.createButtonText}>
+          {isCreating ? "CREATING..." : "CREATE"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -101,26 +142,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#66B288", // Green background
+    backgroundColor: "#66B288",
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#000000",
-    width: "100%",
-    maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 8,
-      height: 8,
-    },
-    shadowOpacity: 1,
-    shadowRadius: 0,
   },
   title: {
     fontSize: 24,
@@ -129,16 +154,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: "Minecraft",
   },
-  label: {
-    fontSize: 16,
-    color: "#000000",
-    marginBottom: 8,
-    fontFamily: "Minecraft",
-    fontWeight: "bold",
-  },
   input: {
     width: "100%",
     height: 40,
+    backgroundColor: "#FFFFFF",
     borderWidth: 2,
     borderColor: "#000000",
     marginBottom: 24,
@@ -147,35 +166,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#000000",
   },
-  buddyGrid: {
+  emojiGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 24,
+    width: "100%",
   },
-  buddyContainer: {
+  emojiContainer: {
     width: "48%",
     aspectRatio: 1,
+    backgroundColor: "#FFFFFF",
     borderWidth: 2,
     borderColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#FFFFFF",
   },
-  selectedBuddyContainer: {
-    borderColor: "#000000",
+  selectedEmojiContainer: {
     backgroundColor: "#E8E8E8",
   },
-  buddyEmoji: {
+  emoji: {
     fontSize: 40,
-    marginBottom: 8,
-  },
-  buddyName: {
-    fontSize: 14,
-    fontFamily: "Minecraft",
-    fontWeight: "bold",
-    color: "#000000",
   },
   createButton: {
     width: "100%",
