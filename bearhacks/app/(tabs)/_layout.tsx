@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Tabs, useRouter, usePathname } from "expo-router";
 import { checkExistingBuddy } from "../../services/buddyService";
 import { Ionicons } from "@expo/vector-icons";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const router = useRouter();
@@ -43,11 +44,20 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#FFA000",
-        tabBarInactiveTintColor: "#5D4037",
+        tabBarActiveTintColor: "#000000",
+        tabBarInactiveTintColor: "#666666",
         tabBarStyle: {
-          backgroundColor: "#FFF8E1",
-          borderTopColor: "#FFE0B2",
+          backgroundColor: "#F7F5E1", // pixel-cream
+          borderTopWidth: 4,
+          borderTopColor: "#000000",
+          height: Platform.OS === "ios" ? 88 : 60,
+          paddingBottom: Platform.OS === "ios" ? 28 : 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Minecraft",
+          fontSize: 10,
+          textTransform: "uppercase",
         },
       }}
     >
@@ -61,27 +71,27 @@ export default function TabLayout() {
       <Tabs.Screen
         name="buddy"
         options={{
-          title: "Buddy",
+          title: "BUDDY",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="paw-outline" size={24} color={color} />
+            <Ionicons name="lock-closed" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          title: "JOURNAL",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="restaurant-outline" size={24} color={color} />
+            <Ionicons name="book" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="social"
         options={{
-          title: "Social",
+          title: "SOCIAL",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="people-outline" size={24} color={color} />
+            <Ionicons name="happy" size={24} color={color} />
           ),
         }}
       />

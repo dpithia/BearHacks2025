@@ -8,8 +8,9 @@ import {
   Alert,
   ActivityIndicator,
   Clipboard,
+  SafeAreaView,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "../../services/supabase";
 import { router } from "expo-router";
@@ -219,19 +220,26 @@ export default function SocialScreen() {
   const renderItem = ({ item }: { item: Follow }) => (
     <View style={styles.followItem}>
       <View style={styles.followInfo}>
-        <Ionicons name="person-circle-outline" size={24} color="#5D4037" />
-        <Text style={styles.username}>
-          {activeTab === "following"
-            ? item.following?.email.split("@")[0]
-            : item.follower?.email.split("@")[0]}
-        </Text>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarEmoji}>
+            {activeTab === "following" ? "🐱" : "🐕"}
+          </Text>
+        </View>
+        <View>
+          <Text style={styles.username}>
+            {activeTab === "following"
+              ? item.following?.email.split("@")[0]
+              : item.follower?.email.split("@")[0]}
+          </Text>
+          <Text style={styles.petName}>Whiskers</Text>
+        </View>
       </View>
       {activeTab === "following" && (
         <TouchableOpacity
           style={styles.unfollowButton}
           onPress={() => unfollow(item.id)}
         >
-          <Text style={styles.unfollowText}>Unfollow</Text>
+          <Text style={styles.unfollowText}>UNFOLLOW</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -245,224 +253,345 @@ export default function SocialScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FFA000" />
+        <ActivityIndicator size="large" color="#8977b6" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Social</Text>
-      </View>
-
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "following" && styles.activeTab]}
-          onPress={() => setActiveTab("following")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "following" && styles.activeTabText,
-            ]}
-          >
-            Following ({following.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "followers" && styles.activeTab]}
-          onPress={() => setActiveTab("followers")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "followers" && styles.activeTabText,
-            ]}
-          >
-            Followers ({followers.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {friendCode && (
-        <View style={styles.codeContainer}>
-          <Text style={styles.codeLabel}>Your Friend Code:</Text>
-          <View style={styles.codeWrapper}>
-            <Text style={styles.codeText}>{friendCode}</Text>
-            <TouchableOpacity
-              style={styles.copyButton}
-              onPress={copyToClipboard}
-            >
-              <Ionicons name="copy-outline" size={24} color="#5D4037" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.codeExpiry}>Valid for 24 hours</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>SOCIAL</Text>
+          <TouchableOpacity style={styles.profileButton}>
+            <Ionicons name="person-outline" size={24} color="#F7F5E1" />
+          </TouchableOpacity>
         </View>
-      )}
 
-      <FlatList
-        data={activeTab === "following" ? following : followers}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        style={styles.list}
-        contentContainerStyle={styles.listContent}
-        refreshing={isRefreshing}
-        onRefresh={handleRefresh}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {activeTab === "following"
-              ? "You're not following anyone yet"
-              : "You don't have any followers yet"}
-          </Text>
-        }
-      />
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "following" && styles.activeTab]}
+            onPress={() => setActiveTab("following")}
+          >
+            <Text style={[styles.tabText, activeTab === "following" && styles.activeTabText]}>
+              FOLLOWING
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "followers" && styles.activeTab]}
+            onPress={() => setActiveTab("followers")}
+          >
+            <Text style={[styles.tabText, activeTab === "followers" && styles.activeTabText]}>
+              FOLLOWERS
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#FFA000" }]}
-          onPress={generateFriendCode}
-        >
-          <Text style={styles.buttonText}>Generate Friend Code</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: "#FB8C00" }]}
-          onPress={() => router.push("/(tabs)/enter-code" as any)}
-        >
-          <Text style={styles.buttonText}>Enter Friend Code</Text>
-        </TouchableOpacity>
+        {/* Friend Code Display */}
+        {friendCode && (
+          <View style={styles.codeContainer}>
+            <Text style={styles.codeLabel}>YOUR FRIEND CODE:</Text>
+            <View style={styles.codeWrapper}>
+              <Text style={styles.codeText}>{friendCode}</Text>
+              <TouchableOpacity
+                style={styles.copyButton}
+                onPress={copyToClipboard}
+              >
+                <Ionicons name="copy-outline" size={20} color="#000000" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.codeExpiry}>VALID FOR 24 HOURS</Text>
+          </View>
+        )}
+
+        <FlatList
+          data={activeTab === "following" ? following : followers}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {activeTab === "following"
+                  ? "You're not following anyone yet"
+                  : "You don't have any followers yet"}
+              </Text>
+            </View>
+          }
+        />
+
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.generateButton}
+            onPress={generateFriendCode}
+          >
+            <Text style={styles.buttonText}>GENERATE CODE</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.enterButton}
+            onPress={() => router.push("/(tabs)/enter-code" as any)}
+          >
+            <Text style={styles.buttonText}>ENTER CODE</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#3AA385", // pixel-green
+    paddingTop: Platform.OS === "ios" ? 47 : 0,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#3AA385", // pixel-green
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#3AA385", // pixel-green
   },
   header: {
+    backgroundColor: "#3AA385", // pixel-green
+    borderBottomWidth: 4,
+    borderBottomColor: "#000000",
+    padding: 16,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
   },
-  title: {
+  headerTitle: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#5D4037",
+    fontFamily: "Minecraft",
+    color: "#F7F5E1", // pixel-cream
+    textTransform: "uppercase",
+  },
+  profileButton: {
+    padding: 8,
   },
   tabContainer: {
     flexDirection: "row",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFE0B2",
+    borderBottomWidth: 4,
+    borderBottomColor: "#000000",
   },
   tab: {
     flex: 1,
-    padding: 8,
+    padding: 12,
+    backgroundColor: "#3AA385", // pixel-green
     alignItems: "center",
-    borderRadius: 20,
   },
   activeTab: {
-    backgroundColor: "#FFD54F",
+    backgroundColor: "#F7F5E1", // pixel-cream
   },
   tabText: {
-    color: "#5D4037",
-    fontWeight: "bold",
+    color: "#F7F5E1", // pixel-cream
+    fontFamily: "Minecraft",
+    fontSize: 14,
   },
   activeTabText: {
-    fontWeight: "bold",
-    color: "#FFA000",
+    color: "#000000",
   },
   list: {
     flex: 1,
+    backgroundColor: "#3AA385", // pixel-green
+  },
+  listContent: {
+    padding: 16,
   },
   followItem: {
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderWidth: 4,
+    borderColor: "#000000",
+    padding: 12,
+    marginBottom: 16,
     flexDirection: "row",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFE0B2",
-    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   followInfo: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
+  avatarContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  avatarEmoji: {
+    fontSize: 24,
+  },
   username: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#5D4037",
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    color: "#000000",
+  },
+  petName: {
+    fontFamily: "Minecraft",
+    fontSize: 12,
+    color: "#666666",
   },
   unfollowButton: {
+    backgroundColor: "#8977b6", // pixel-purple
+    borderWidth: 3,
+    borderColor: "#000000",
     padding: 8,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   unfollowText: {
-    color: "#D84315",
-    fontWeight: "bold",
+    color: "#F7F5E1", // pixel-cream
+    fontFamily: "Minecraft",
+    fontSize: 12,
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: "center",
   },
   emptyText: {
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    color: "#F7F5E1", // pixel-cream
     textAlign: "center",
-    color: "#5D4037",
-    fontSize: 16,
-    marginTop: 24,
+    marginBottom: 16,
   },
   buttonContainer: {
     padding: 16,
-    gap: 8,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderTopWidth: 4,
+    borderTopColor: "#000000",
+    flexDirection: "row",
+    gap: 16,
   },
-  button: {
-    padding: 16,
-    borderRadius: 12,
+  generateButton: {
+    flex: 1,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderWidth: 3,
+    borderColor: "#000000",
+    padding: 12,
     alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  enterButton: {
+    flex: 1,
+    backgroundColor: "#8977b6", // pixel-purple
+    borderWidth: 3,
+    borderColor: "#000000",
+    padding: 12,
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#000000",
+    fontFamily: "Minecraft",
+    fontSize: 14,
   },
   codeContainer: {
     margin: 16,
+    backgroundColor: "#F7F5E1", // pixel-cream
+    borderWidth: 4,
+    borderColor: "#000000",
     padding: 16,
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#FFE0B2",
     alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   codeLabel: {
-    fontSize: 16,
-    color: "#5D4037",
-    marginBottom: 8,
+    fontSize: 14,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    marginBottom: 12,
+    textTransform: "uppercase",
   },
   codeWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    backgroundColor: "#FFFCEE", // pixel-cream-light
+    borderWidth: 3,
+    borderColor: "#000000",
+    padding: 12,
+    marginBottom: 12,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   codeText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFA000",
+    fontSize: 20,
+    fontFamily: "Minecraft",
+    color: "#000000",
+    marginRight: 12,
     letterSpacing: 2,
   },
   copyButton: {
+    backgroundColor: "#8977b6", // pixel-purple
     padding: 8,
-    backgroundColor: "#FFE0B2",
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
   },
   codeExpiry: {
-    fontSize: 14,
-    color: "#8D6E63",
-    marginTop: 8,
-  },
-  listContent: {
-    flexGrow: 1,
-    paddingBottom: 16,
+    fontSize: 10,
+    fontFamily: "Minecraft",
+    color: "#666666",
+    textTransform: "uppercase",
   },
 });
