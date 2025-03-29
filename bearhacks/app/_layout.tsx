@@ -5,6 +5,7 @@ import SplashScreen from "../components/SplashScreen";
 import AuthScreen from "../components/AuthScreen";
 import SignUpScreen from "../components/SignUpScreen";
 import { supabase } from "../services/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +29,14 @@ export default function RootLayout() {
 
   const checkUser = async () => {
     try {
+      // Check if this is first launch
+      const hasLaunched = await AsyncStorage.getItem("hasLaunched");
+      if (!hasLaunched) {
+        // First time launch, clear any existing session
+        await supabase.auth.signOut();
+        await AsyncStorage.setItem("hasLaunched", "true");
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
