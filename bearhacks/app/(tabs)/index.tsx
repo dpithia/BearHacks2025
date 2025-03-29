@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, View, Text } from "react-native";
 import SplashScreen from "../../components/SplashScreen";
 
-export default function TabOneScreen() {
+export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Simulate loading time
@@ -19,12 +19,11 @@ export default function TabOneScreen() {
     return <SplashScreen appName="BearApp" />;
   }
 
-  // Your main app content
+  // This placeholder will be replaced with your actual content
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to BearApp!</Text>
-      <Text style={styles.subtitle}>Your bear-themed application</Text>
-      {/* More content will be added in future steps */}
+      <Text style={styles.text}>Main Screen Placeholder</Text>
+      {/* We'll build your actual content here in the next steps */}
     </View>
   );
 }
@@ -32,18 +31,12 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFF8E1",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF8E1",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
+  text: {
+    fontSize: 20,
     color: "#5D4037",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#795548",
   },
 });
