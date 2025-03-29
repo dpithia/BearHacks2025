@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import SplashScreen from "../../components/SplashScreen";
+import { useFonts } from "expo-font";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -16,73 +17,83 @@ export default function HomeScreen() {
   const [buddyName, setBuddyName] = useState<string>("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
 
-  // Emoji options
-  const emojiOptions = ["🐻", "🐼", "🐨", "🦊"];
+  const [fontsLoaded] = useFonts({
+    Minecraft: require("../../assets/fonts/Minecraft.ttf"),
+  });
+
+  // Emoji options (placeholders until we have sprites)
+  const buddyOptions = [
+    { emoji: "👤", name: "HUMAN" },
+    { emoji: "🐱", name: "CAT" },
+    { emoji: "🐕", name: "DOG" },
+    { emoji: "🐦", name: "BIRD" },
+  ];
 
   // Simulate loading time
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000); // Show splash screen for 3 seconds
+    }, 3000);
 
     return () => clearTimeout(timer);
   }, []);
 
-  // Show splash screen while loading
-  if (isLoading) {
+  if (isLoading || !fontsLoaded) {
     return <SplashScreen appName="BearBuddy" />;
   }
 
-  // Handle emoji selection
   const handleEmojiSelect = (emoji: string) => {
     setSelectedEmoji(emoji);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Your Buddy</Text>
+      <View style={styles.card}>
+        <Text style={styles.title}>CREATE YOUR BUDDY</Text>
 
-      {/* Name input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Enter buddy name"
-        placeholderTextColor="#A1887F"
-        value={buddyName}
-        onChangeText={setBuddyName}
-      />
+        <Text style={styles.label}>NAME YOUR BUDDY:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="MAX 12 CHARS"
+          placeholderTextColor="#9E9E9E"
+          value={buddyName}
+          onChangeText={setBuddyName}
+          maxLength={12}
+        />
 
-      {/* 2x2 Emoji Grid */}
-      <View style={styles.emojiGrid}>
-        {emojiOptions.map((emoji, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[
-              styles.emojiContainer,
-              selectedEmoji === emoji && styles.selectedEmojiContainer,
-            ]}
-            onPress={() => handleEmojiSelect(emoji)}
-          >
-            <Text style={styles.emoji}>{emoji}</Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.label}>CHOOSE YOUR BUDDY:</Text>
+        <View style={styles.buddyGrid}>
+          {buddyOptions.map((buddy, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.buddyContainer,
+                selectedEmoji === buddy.emoji && styles.selectedBuddyContainer,
+              ]}
+              onPress={() => handleEmojiSelect(buddy.emoji)}
+            >
+              <Text style={styles.buddyEmoji}>{buddy.emoji}</Text>
+              <Text style={styles.buddyName}>{buddy.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.createButton,
+            (!buddyName || !selectedEmoji) && styles.disabledButton,
+          ]}
+          disabled={!buddyName || !selectedEmoji}
+          onPress={() => {
+            router.push({
+              pathname: "/buddy",
+              params: { name: buddyName, emoji: selectedEmoji },
+            });
+          }}
+        >
+          <Text style={styles.createButtonText}>CREATE</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* Create Button */}
-      <TouchableOpacity
-        style={[
-          styles.createButton,
-          (!buddyName || !selectedEmoji) && styles.disabledButton,
-        ]}
-        disabled={!buddyName || !selectedEmoji}
-        onPress={() => {
-          router.push({
-            pathname: "/buddy",
-            params: { name: buddyName, emoji: selectedEmoji },
-          });
-        }}
-      >
-        <Text style={styles.createButtonText}>Create</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -90,70 +101,98 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#66B288", // Green background
     alignItems: "center",
-    paddingTop: 200,
-    paddingHorizontal: 20,
+    justifyContent: "center",
+    padding: 20,
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "#000000",
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 8,
+      height: 8,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#5D4037",
-    marginBottom: 30,
+    color: "#000000",
+    marginBottom: 24,
+    fontFamily: "Minecraft",
+  },
+  label: {
+    fontSize: 16,
+    color: "#000000",
+    marginBottom: 8,
+    fontFamily: "Minecraft",
+    fontWeight: "bold",
   },
   input: {
     width: "100%",
-    backgroundColor: "white",
+    height: 40,
     borderWidth: 2,
-    borderColor: "#FF8F00",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    color: "#5D4037",
-    marginBottom: 30,
+    borderColor: "#000000",
+    marginBottom: 24,
+    padding: 8,
+    fontFamily: "Minecraft",
+    fontSize: 14,
+    color: "#000000",
   },
-  emojiGrid: {
+  buddyGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
-    width: "100%",
-    marginBottom: 40,
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
-  emojiContainer: {
-    width: "45%",
+  buddyContainer: {
+    width: "48%",
     aspectRatio: 1,
-    backgroundColor: "#FFD54F",
-    margin: "2.5%",
-    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFA000",
+    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
   },
-  selectedEmojiContainer: {
-    backgroundColor: "#FFA000",
-    borderColor: "#FF6F00",
-    transform: [{ scale: 1.05 }],
+  selectedBuddyContainer: {
+    borderColor: "#000000",
+    backgroundColor: "#E8E8E8",
   },
-  emoji: {
-    fontSize: 60,
+  buddyEmoji: {
+    fontSize: 40,
+    marginBottom: 8,
+  },
+  buddyName: {
+    fontSize: 14,
+    fontFamily: "Minecraft",
+    fontWeight: "bold",
+    color: "#000000",
   },
   createButton: {
-    backgroundColor: "#FFA000",
-    paddingVertical: 14,
-    paddingHorizontal: 50,
-    borderRadius: 10,
+    width: "100%",
+    height: 50,
+    backgroundColor: "#FFFFFF",
     borderWidth: 2,
-    borderColor: "#FF8F00",
+    borderColor: "#000000",
+    justifyContent: "center",
+    alignItems: "center",
   },
   createButtonText: {
-    color: "#5D4037",
+    color: "#000000",
     fontSize: 18,
+    fontFamily: "Minecraft",
     fontWeight: "bold",
   },
   disabledButton: {
-    backgroundColor: "#E0E0E0",
-    borderColor: "#BDBDBD",
-    opacity: 0.7,
+    opacity: 0.5,
   },
 });
