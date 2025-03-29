@@ -18,10 +18,19 @@ export default function RootLayout() {
   const [showSignUp, setShowSignUp] = useState(false);
   const [isCheckingBuddy, setIsCheckingBuddy] = useState(false);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const [forceShowSplash, setForceShowSplash] = useState(true);
 
   const [fontsLoaded] = useFonts({
     Minecraft: require("../assets/fonts/Minecraft.ttf"),
   });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceShowSplash(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     checkUser();
@@ -148,7 +157,7 @@ export default function RootLayout() {
     }
   };
 
-  if (isLoading || isCheckingBuddy || !fontsLoaded) {
+  if (isLoading || isCheckingBuddy || !fontsLoaded || forceShowSplash) {
     return <SplashScreen />;
   }
 

@@ -2,8 +2,8 @@ import { ExpoConfig, ConfigContext } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "BearBuddy",
-  slug: "BearBuddy",
+  name: "NineLives",
+  slug: "ninelives",
   version: "1.0.0",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
@@ -17,14 +17,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   assetBundlePatterns: ["**/*"],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.bearhack.bearbuddy",
+    bundleIdentifier: "com.ninelives.app",
   },
   android: {
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
-    package: "com.bearhack.bearbuddy",
+    package: "com.ninelives.app",
   },
   web: {
     favicon: "./assets/images/favicon.png",
