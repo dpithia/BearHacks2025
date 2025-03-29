@@ -6,19 +6,25 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  Image,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as MediaLibrary from "expo-media-library";
+import FoodCamera from "../../components/FoodCamera";
+import { FoodAnalyzer } from "../../services/FoodAnalyzer";
 
 // Constants for game mechanics
-const NORMAL_HP_DECAY = 0.6; // HP points lost per hour normally
+const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
 const HUNGRY_HP_DECAY = 1.5; // HP points lost per hour when hungry
 const THIRSTY_HP_DECAY = 1.5; // HP points lost per hour when thirsty
 const HUNGRY_THRESHOLD = 6; // Hours until buddy gets hungry
 const THIRSTY_THRESHOLD = 4; // Hours until buddy gets thirsty
 const ENERGY_DECAY = 0.7; // Energy points lost per hour when awake
 const ENERGY_RECOVERY = 10; // Energy points gained per hour of sleep
+const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
+const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
 
 export default function BuddyScreen() {
   // Get parameters from navigation
@@ -38,6 +44,18 @@ export default function BuddyScreen() {
   const [lastDrank, setLastDrank] = useState<Date>(new Date());
   const [isSleeping, setIsSleeping] = useState<boolean>(false);
   const [sleepStartTime, setSleepStartTime] = useState<Date | null>(null);
+
+  // Camera and image processing states
+  const [cameraVisible, setCameraVisible] = useState<boolean>(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [processingImage, setProcessingImage] = useState<boolean>(false);
+
+  // Check for permissions on mount
+  useEffect(() => {
+    (async () => {
+      await MediaLibrary.requestPermissionsAsync();
+    })();
+  }, []);
 
   // Ref for timer
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -133,8 +151,6 @@ export default function BuddyScreen() {
     // Update energy based on sleep status
     if (isSleeping && sleepStartTime) {
       // Energy increases while sleeping
-      const hoursSlept =
-        (now.getTime() - sleepStartTime.getTime()) / (1000 * 60 * 60);
       const energyGain = ENERGY_RECOVERY * hoursSinceLastUpdate;
       setEnergyLevel((prev) => Math.min(100, prev + energyGain));
     } else {
@@ -144,11 +160,44 @@ export default function BuddyScreen() {
     }
   };
 
-  // Handle feeding the buddy
+  // Handler for when a picture is taken
+  const handlePictureTaken = async (imageUri: string) => {
+    setCapturedImage(imageUri);
+    setCameraVisible(false);
+    setProcessingImage(true);
+
+    // Analyze the food image using our service
+    try {
+      const analysis = await FoodAnalyzer.analyzeImage(imageUri);
+
+      // Update buddy based on analysis
+      setLastFed(new Date());
+
+      if (analysis.isHealthy) {
+        setHealthLevel((prev) => Math.min(100, prev + HEALTHY_FOOD_HP_GAIN));
+        Alert.alert(
+          "Healthy Food!",
+          `That's a nutritious meal! ${buddyName} feels great and gained ${HEALTHY_FOOD_HP_GAIN} HP!`
+        );
+      } else {
+        setHealthLevel((prev) => Math.min(100, prev + UNHEALTHY_FOOD_HP_GAIN));
+        Alert.alert(
+          "Snack Time!",
+          `${buddyName} enjoyed that treat but it's not very nutritious. Gained ${UNHEALTHY_FOOD_HP_GAIN} HP.`
+        );
+      }
+    } catch (error) {
+      console.error("Error processing food image:", error);
+      Alert.alert("Error", "Failed to analyze food. Please try again.");
+    } finally {
+      setProcessingImage(false);
+      setCapturedImage(null);
+    }
+  };
+
+  // Handle opening the camera
   const handleFeed = () => {
-    setLastFed(new Date());
-    setHealthLevel((prev) => Math.min(100, prev + 10));
-    Alert.alert("Yum!", `${buddyName} has been fed!`);
+    setCameraVisible(true);
   };
 
   // Handle giving water to buddy
@@ -183,6 +232,35 @@ export default function BuddyScreen() {
     }
   };
 
+  // Camera view when taking a picture
+  if (cameraVisible) {
+    return (
+      <FoodCamera
+        onTakePicture={handlePictureTaken}
+        onCancel={() => setCameraVisible(false)}
+        buddyName={buddyName}
+      />
+    );
+  }
+
+  // Processing view when analyzing the image
+  if (processingImage) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.processingText}>Analyzing food...</Text>
+          {capturedImage && (
+            <Image
+              source={{ uri: capturedImage }}
+              style={styles.previewImage}
+            />
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Normal buddy view
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -361,5 +439,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: "#5D4037",
     fontWeight: "bold",
+  },
+  processingText: {
+    fontSize: 24,
+    color: "#5D4037",
+    marginBottom: 20,
+  },
+  previewImage: {
+    width: 300,
+    height: 300,
+    borderRadius: 20,
+    marginBottom: 20,
   },
 });
