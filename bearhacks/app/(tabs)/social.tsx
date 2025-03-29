@@ -22,19 +22,9 @@ type DatabaseFollow = {
   created_at: string;
   following_user: {
     email: string;
-    buddy?: {
-      hp: number;
-      energy: number;
-      sleeping: boolean;
-    };
   } | null;
   follower_user: {
     email: string;
-    buddy?: {
-      hp: number;
-      energy: number;
-      sleeping: boolean;
-    };
   } | null;
 };
 
@@ -45,19 +35,9 @@ type Follow = {
   created_at: string;
   following?: {
     email: string;
-    buddy?: {
-      hp: number;
-      energy: number;
-      sleeping: boolean;
-    };
   };
   follower?: {
     email: string;
-    buddy?: {
-      hp: number;
-      energy: number;
-      sleeping: boolean;
-    };
   };
 };
 
@@ -101,14 +81,7 @@ export default function SocialScreen() {
           follower_id,
           following_id,
           created_at,
-          following_user:users!follows_following_id_fkey(
-            email,
-            buddy (
-              hp,
-              energy,
-              sleeping
-            )
-          )
+          following_user:users!follows_following_id_fkey(email)
         `
         )
         .eq("follower_id", user.id)
@@ -128,10 +101,7 @@ export default function SocialScreen() {
           following_id: follow.following_id,
           created_at: follow.created_at,
           following: follow.following_user
-            ? {
-                email: follow.following_user.email,
-                buddy: follow.following_user.buddy,
-              }
+            ? { email: follow.following_user.email }
             : undefined,
         })) || [];
 
@@ -147,14 +117,7 @@ export default function SocialScreen() {
           follower_id,
           following_id,
           created_at,
-          follower_user:users!follows_follower_id_fkey(
-            email,
-            buddy (
-              hp,
-              energy,
-              sleeping
-            )
-          )
+          follower_user:users!follows_follower_id_fkey(email)
         `
         )
         .eq("following_id", user.id)
@@ -174,10 +137,7 @@ export default function SocialScreen() {
           following_id: follow.following_id,
           created_at: follow.created_at,
           follower: follow.follower_user
-            ? {
-                email: follow.follower_user.email,
-                buddy: follow.follower_user.buddy,
-              }
+            ? { email: follow.follower_user.email }
             : undefined,
         })) || [];
 
@@ -433,9 +393,6 @@ const styles = StyleSheet.create({
   },
   followInfo: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
   },
   username: {
     marginLeft: 8,
@@ -507,13 +464,5 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
     paddingBottom: 16,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  statText: {
-    color: "#8D6E63",
-    fontSize: 14,
   },
 });
