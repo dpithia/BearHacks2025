@@ -256,39 +256,26 @@ export default function SocialScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: Follow }) => {
-    const user = activeTab === "following" ? item.following : item.follower;
-    const buddy = user?.buddy;
-
-    return (
-      <View style={styles.followItem}>
-        <View style={styles.followInfo}>
-          <Ionicons
-            name={buddy?.sleeping ? "moon" : "person-circle-outline"}
-            size={24}
-            color={buddy?.sleeping ? "#5C6BC0" : "#5D4037"}
-          />
-          <Text style={styles.username}>{user?.email.split("@")[0]}</Text>
-          {buddy && (
-            <View style={styles.statsContainer}>
-              <Text style={styles.statText}>HP: {Math.round(buddy.hp)}%</Text>
-              <Text style={styles.statText}>
-                Energy: {Math.round(buddy.energy)}%
-              </Text>
-            </View>
-          )}
-        </View>
-        {activeTab === "following" && (
-          <TouchableOpacity
-            style={styles.unfollowButton}
-            onPress={() => unfollow(item.id)}
-          >
-            <Text style={styles.unfollowText}>Unfollow</Text>
-          </TouchableOpacity>
-        )}
+  const renderItem = ({ item }: { item: Follow }) => (
+    <View style={styles.followItem}>
+      <View style={styles.followInfo}>
+        <Ionicons name="person-circle-outline" size={24} color="#5D4037" />
+        <Text style={styles.username}>
+          {activeTab === "following"
+            ? item.following?.email.split("@")[0]
+            : item.follower?.email.split("@")[0]}
+        </Text>
       </View>
-    );
-  };
+      {activeTab === "following" && (
+        <TouchableOpacity
+          style={styles.unfollowButton}
+          onPress={() => unfollow(item.id)}
+        >
+          <Text style={styles.unfollowText}>Unfollow</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   const handleRefresh = () => {
     setIsRefreshing(true);

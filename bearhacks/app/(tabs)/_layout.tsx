@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Tabs, useRouter, usePathname } from "expo-router";
 import { checkExistingBuddy } from "../../services/buddyService";
 import { Ionicons } from "@expo/vector-icons";
@@ -6,40 +6,55 @@ import { Ionicons } from "@expo/vector-icons";
 export default function TabLayout() {
   const router = useRouter();
   const pathname = usePathname();
+  const initialCheckDone = useRef(false);
 
   useEffect(() => {
-    const checkBuddy = async () => {
-      if (pathname === "/(tabs)" || pathname === "/(tabs)/index") {
-        const hasBuddy = await checkExistingBuddy();
-        console.log("Has buddy:", hasBuddy);
-        if (hasBuddy) {
-          router.replace("/(tabs)/buddy");
+    // Only check once on initial mount if we're on the index page
+    // and we haven't already checked in the root layout
+    if (
+      !initialCheckDone.current &&
+      (pathname === "/(tabs)" || pathname === "/(tabs)/index")
+    ) {
+      console.warn("[TabLayout] Running initial buddy check");
+
+      const checkBuddy = async () => {
+        try {
+          const { hasBuddy } = await checkExistingBuddy();
+          console.warn("[TabLayout] Buddy check result:", { hasBuddy });
+
+          if (hasBuddy) {
+            console.warn("[TabLayout] Redirecting to buddy screen");
+            router.replace("/(tabs)/buddy");
+          } else {
+            console.warn("[TabLayout] No buddy found, staying on index");
+          }
+        } catch (error) {
+          console.error("[TabLayout] Error checking buddy:", error);
+        } finally {
+          initialCheckDone.current = true;
         }
-      }
-    };
-    checkBuddy();
+      };
+
+      checkBuddy();
+    }
   }, [pathname, router]);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarActiveTintColor: "#FFA000",
+        tabBarInactiveTintColor: "#5D4037",
         tabBarStyle: {
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 2,
-          borderTopColor: "#000000",
+          backgroundColor: "#FFF8E1",
+          borderTopColor: "#FFE0B2",
         },
-        tabBarActiveTintColor: "#66B288",
-        tabBarInactiveTintColor: "#000000",
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Create",
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="add-circle-outline" size={24} color={color} />
-          ),
+          href: null,
           tabBarStyle: { display: "none" },
         }}
       />
@@ -48,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: "Buddy",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="heart-outline" size={24} color={color} />
+            <Ionicons name="paw-outline" size={24} color={color} />
           ),
         }}
       />
@@ -64,7 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="enter-code"
         options={{
-          title: "Enter Code",
+          href: null,
           tabBarStyle: { display: "none" },
         }}
       />
