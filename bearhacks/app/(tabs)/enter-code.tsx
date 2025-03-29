@@ -203,28 +203,32 @@ export default function EnterCodeScreen() {
             <Ionicons name="arrow-back" size={24} color="#5D4037" />
           </TouchableOpacity>
           <Text style={styles.title}>Enter Friend Code</Text>
-          <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.content}>
           <TextInput
-            style={[styles.input, isLoading && styles.inputDisabled]}
+            style={[styles.input, { fontFamily: "Minecraft" }]}
+            placeholder="Enter friend code"
+            placeholderTextColor="#9E9E9E"
             value={code}
             onChangeText={setCode}
-            placeholder="Enter 8-character code"
             autoCapitalize="characters"
             maxLength={8}
             editable={!isLoading}
           />
+
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={[
+              styles.submitButton,
+              isLoading && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="white" size="small" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.buttonText}>Follow Friend</Text>
+              <Text style={styles.submitButtonText}>Submit</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -236,57 +240,86 @@ export default function EnterCodeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF8E1",
+    backgroundColor: "#3AA385",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFE0B2",
+    borderBottomWidth: 4,
+    borderBottomColor: "#000000",
   },
   backButton: {
-    padding: 8,
-    marginLeft: -8,
+    padding: 12,
+    backgroundColor: "#F7F5E1",
+    borderWidth: 3,
+    borderColor: "#000000",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#5D4037",
+    fontSize: 24,
+    fontFamily: "Minecraft",
+    color: "#F7F5E1",
+    marginLeft: 16,
+    textTransform: "uppercase",
   },
   content: {
-    padding: 16,
+    flex: 1,
+    padding: 20,
     alignItems: "center",
+    justifyContent: "center",
   },
   input: {
     width: "100%",
-    backgroundColor: "white",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#FFE0B2",
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: 16,
+    height: 50,
+    backgroundColor: "#F7F5E1",
+    borderWidth: 3,
+    borderColor: "#000000",
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: "#000000",
+    marginBottom: 20,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
-  inputDisabled: {
-    opacity: 0.7,
-    backgroundColor: "#F5F5F5",
-  },
-  button: {
-    backgroundColor: "#FFA000",
-    padding: 16,
-    borderRadius: 12,
+  submitButton: {
     width: "100%",
+    height: 50,
+    backgroundColor: "#8977b6",
+    borderWidth: 3,
+    borderColor: "#000000",
     alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 3,
+      height: 3,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
   },
-  buttonDisabled: {
-    opacity: 0.5,
+  submitButtonDisabled: {
+    backgroundColor: "#8977b6",
+    opacity: 0.7,
   },
-  buttonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+  submitButtonText: {
+    color: "#F7F5E1",
+    fontSize: 16,
+    fontFamily: "Minecraft",
+    textTransform: "uppercase",
   },
 });

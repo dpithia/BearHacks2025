@@ -61,35 +61,42 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFF8E1", // Light honey color for background
+    backgroundColor: "#3AA385",
   },
   circleContainer: {
     marginBottom: 24,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 4,
+      height: 4,
+    },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 8,
   },
   circle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#FFA000", // Amber/honey color
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: "#F7F5E1",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: "#FF8F00", // Darker honey outline
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    borderWidth: 4,
+    borderColor: "#000000",
   },
   bearEmoji: {
-    fontSize: 60,
-    // No need for specific color as emoji has its own color
+    fontSize: 70,
+    fontFamily: "Minecraft",
   },
   appName: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#5D4037", // Brown color (bear-like)
-    marginTop: 16,
+    fontSize: 32,
+    fontFamily: "Minecraft",
+    color: "#F7F5E1",
+    marginTop: 24,
+    textTransform: "uppercase",
+    textShadowColor: "#000000",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
   },
 });
 

@@ -10,6 +10,7 @@ import {
   cleanupDuplicateBuddies,
 } from "../services/buddyService";
 import * as SecureStore from "expo-secure-store";
+import { useFonts } from "expo-font";
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -17,6 +18,10 @@ export default function RootLayout() {
   const [showSignUp, setShowSignUp] = useState(false);
   const [isCheckingBuddy, setIsCheckingBuddy] = useState(false);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+  const [fontsLoaded] = useFonts({
+    Minecraft: require("../assets/fonts/Minecraft.ttf"),
+  });
 
   useEffect(() => {
     checkUser();
@@ -143,7 +148,7 @@ export default function RootLayout() {
     }
   };
 
-  if (isLoading || isCheckingBuddy) {
+  if (isLoading || isCheckingBuddy || !fontsLoaded) {
     return <SplashScreen />;
   }
 
