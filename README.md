@@ -40,6 +40,7 @@ NineLives is a health companion app that uses a virtual pet (your "buddy") to en
 3. **Create Buddy**: Customize your health companion
 4. **Buddy Dashboard**: Monitor your buddy's health metrics
 5. **Food Camera**: Take photos of meals for tracking
+6. **Social Features**: Share your buddy with friends
 
 ## 🛠️ Installation
 
@@ -72,9 +73,7 @@ npx expo start
 
 ## 🔮 Future Enhancements using Perplexity
 
-- **Advanced Food Analysis**: Enhanced nutritional insights using Perplexity
 - **Health Insights**: Personalized recommendations
-- **Social Features**: Share your buddy with friends
 - **Achievements**: Unlock rewards for consistent healthy habits
 - **Weekly Reports**: Track your health trends over time
 
