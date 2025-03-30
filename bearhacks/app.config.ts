@@ -30,7 +30,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/images/favicon.png",
   },
   extra: {
-    perplexityApiKey: "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",
+    eas: {
+      projectId: "your-project-id",
+    },
+    perplexityApiKey: process.env.PERPLEXITY_API_KEY,
   },
   plugins: ["expo-router"],
 });
