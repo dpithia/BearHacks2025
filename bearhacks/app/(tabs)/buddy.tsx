@@ -350,10 +350,14 @@ export default function BuddyScreen() {
     if (buddyState && !isLoading && !hasInitializedStats) {
       // Initial stats update when buddy is loaded
       updateBuddyStats(true);
-      // Set initial HP for demo
-      updateBuddyState({
-        hp: 50, // Set this to whatever value you want to start with
-      });
+      setHasInitializedStats(true); // Set this first
+
+      // Only set HP if it's not already 50
+      if (buddyState.hp !== 50) {
+        updateBuddyState({
+          hp: 50,
+        });
+      }
     }
   }, [buddyState, isLoading, hasInitializedStats, updateBuddyStats]);
 
