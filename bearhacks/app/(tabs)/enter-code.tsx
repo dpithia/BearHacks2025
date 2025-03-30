@@ -54,7 +54,6 @@ export default function EnterCodeScreen() {
       setIsLoading(true);
       console.log("Starting friend code submission:", code);
 
-      // Get current user
       const {
         data: { user },
         error: userError,

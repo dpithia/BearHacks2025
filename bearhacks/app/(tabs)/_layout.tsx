@@ -10,8 +10,6 @@ export default function TabLayout() {
   const initialCheckDone = useRef(false);
 
   useEffect(() => {
-    // Only check once on initial mount if we're on the index page
-    // and we haven't already checked in the root layout
     if (
       !initialCheckDone.current &&
       (pathname === "/(tabs)" || pathname === "/(tabs)/index")

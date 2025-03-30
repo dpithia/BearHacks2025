@@ -24,7 +24,7 @@ export default function HomeScreen() {
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const { buddyState, isLoading: isBuddyLoading } = useBuddyState();
 
-  // Cat options with labels and GIF paths
+  // cat options with labels and gif paths
   const buddyOptions = [
     {
       gif: require("../../assets/gifs/blackcatsitting.gif"),
@@ -48,7 +48,7 @@ export default function HomeScreen() {
     },
   ];
 
-  // Check if buddy exists and redirect if needed
+  // check if buddy exists and redirect if needed
   useEffect(() => {
     if (!isBuddyLoading && buddyState) {
       console.warn("[HomeScreen] Buddy already exists, redirecting");
@@ -56,7 +56,7 @@ export default function HomeScreen() {
     }
   }, [isBuddyLoading, buddyState, router]);
 
-  // Show loading state
+  // show loading state
   if (isLoading || isBuddyLoading) {
     return <SplashScreen />;
   }
@@ -181,15 +181,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#3AA385", // pixel-green
-    paddingTop: Platform.OS === "ios" ? 47 : 0, // Account for dynamic island
+    backgroundColor: "#3AA385",
+    paddingTop: Platform.OS === "ios" ? 47 : 0,
   },
   container: {
     flex: 1,
-    backgroundColor: "#3AA385", // pixel-green
+    backgroundColor: "#3AA385",
   },
   header: {
-    backgroundColor: "#F7F5E1", // pixel-cream
+    backgroundColor: "#F7F5E1",
     borderBottomWidth: 4,
     borderBottomColor: "#000000",
     padding: 12,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   formContainer: {
     width: "100%",
     maxWidth: 400,
-    backgroundColor: "#FFFCEE", // pixel-cream-light
+    backgroundColor: "#FFFCEE",
     borderWidth: 4,
     borderColor: "#000000",
     padding: 20,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   input: {
     width: "100%",
     height: 44,
-    backgroundColor: "#FFFCEE", // pixel-cream-light
+    backgroundColor: "#FFFCEE",
     borderWidth: 2,
     borderColor: "#000000",
     padding: 8,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   selectedBuddyOption: {
     borderWidth: 2,
-    borderColor: "#8977b6", // pixel-purple
+    borderColor: "#8977b6",
   },
   buddyGif: {
     width: "100%",
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
   createButton: {
-    backgroundColor: "#F7F5E1", // pixel-cream
+    backgroundColor: "#F7F5E1",
     borderWidth: 2,
     borderColor: "#000000",
     padding: 12,

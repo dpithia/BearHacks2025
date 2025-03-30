@@ -23,7 +23,7 @@ import SplashScreen from "../../components/SplashScreen";
 import { supabase } from "../../services/supabase";
 import { useFoodEntryStore } from "../../stores/foodEntryStore";
 
-// Constants for game mechanics
+// constants for game mechanics
 const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
 const HUNGRY_HP_DECAY = 1.5; // HP points lost per hour when hungry
 const THIRSTY_HP_DECAY = 1.5; // HP points lost per hour when thirsty
@@ -35,7 +35,6 @@ const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
 const WATER_GOAL = 15; // Daily water goal in cups
 
-// Add this mapping near the top of the file, after imports
 const CAT_GIFS = {
   black: {
     idle: require("../../assets/gifs/blackcatidle.gif"),
@@ -55,7 +54,6 @@ const CAT_GIFS = {
   },
 };
 
-// Debounce utility function
 const debounce = (func: Function, wait: number) => {
   let timeout: NodeJS.Timeout;
   return (...args: any[]) => {
@@ -69,11 +67,9 @@ export default function BuddyScreen() {
   const router = useRouter();
   const addFoodEntry = useFoodEntryStore((state) => state.addEntry);
 
-  // Add loading states
   const [isUpdatingStats, setIsUpdatingStats] = useState(false);
   const [isTogglingState, setIsTogglingState] = useState(false);
 
-  // Move all useState hooks to the top
   const [cameraVisible, setCameraVisible] = React.useState<boolean>(false);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   const [processingImage, setProcessingImage] = React.useState<boolean>(false);
@@ -85,13 +81,10 @@ export default function BuddyScreen() {
   const [currentStepCount, setCurrentStepCount] = React.useState<number>(0);
   const [dailyStepGoal] = React.useState<number>(10000);
 
-  // Timer ref
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Add new state for tracking initial load
   const [hasInitializedStats, setHasInitializedStats] = useState(false);
 
-  // Debounced update function
   const debouncedUpdateStats = useCallback(
     debounce(async (updates: any) => {
       try {
@@ -103,7 +96,6 @@ export default function BuddyScreen() {
     [updateBuddyState]
   );
 
-  // Modify updateBuddyStats to be more efficient
   const updateBuddyStats = useCallback(
     async (force = false) => {
       if (!buddyState || isUpdatingStats || (!force && hasInitializedStats))
@@ -114,14 +106,13 @@ export default function BuddyScreen() {
         const now = new Date();
         const lastUpdated = new Date(buddyState.lastUpdated);
 
-        // Check if it's a new day for water reset
+        // check water reset
         const isNewDay = now.toDateString() !== lastUpdated.toDateString();
 
-        // Calculate hours since last update
+        // calc hours since last update
         const hoursSinceUpdate =
           (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
 
-        // Skip update if less than a minute has passed (unless forced)
         if (!force && hoursSinceUpdate < 0.016) {
           return;
         }
@@ -135,7 +126,6 @@ export default function BuddyScreen() {
           hpDecayRate += THIRSTY_HP_DECAY;
         }
 
-        // Calculate all updates before making any changes
         const hpLoss = Math.round(hpDecayRate * hoursSinceUpdate);
         const energyChange = Math.round(
           buddyState.isSleeping
@@ -153,7 +143,7 @@ export default function BuddyScreen() {
           lastUpdated: now.toISOString(),
         };
 
-        // Only update if values have actually changed
+        // only update if values have actually changed
         if (
           updates.hp !== buddyState.hp ||
           updates.energy !== buddyState.energy ||
@@ -162,7 +152,6 @@ export default function BuddyScreen() {
         ) {
           await updateBuddyState(updates);
 
-          // Check for critical stats after update
           if (updates.hp <= 20 || updates.energy <= 20) {
             const alerts = [];
             if (updates.hp <= 20) {
@@ -191,7 +180,6 @@ export default function BuddyScreen() {
     [buddyState, isUpdatingStats, hasInitializedStats, updateBuddyState]
   );
 
-  // Handler functions
   const handlePictureTaken = async (imageUri: string) => {
     if (!buddyState) return;
 
@@ -245,11 +233,9 @@ export default function BuddyScreen() {
     const newWaterConsumed = Math.round((buddyState.waterConsumed || 0) + cups);
     const newHp = Math.min(100, Math.round(buddyState.hp + cups * 2));
 
-    // Close modal and reset input immediately
     setWaterModalVisible(false);
     setWaterAmount("1");
 
-    // Show feedback immediately
     Alert.alert(
       "Refreshing!",
       `${buddyState.name} has had ${cups} cup${
@@ -258,14 +244,12 @@ export default function BuddyScreen() {
     );
 
     try {
-      // Update state
       const update = {
         hp: newHp,
         waterConsumed: newWaterConsumed,
         lastDrank: new Date().toISOString(),
       };
 
-      // Update server
       await updateBuddyState(update);
     } catch (error) {
       console.error("Failed to update water:", error);
@@ -273,7 +257,6 @@ export default function BuddyScreen() {
     }
   };
 
-  // Modify sleep handling to prevent race conditions
   const handleSleep = async () => {
     if (!buddyState || isTogglingState) return;
 
@@ -282,11 +265,9 @@ export default function BuddyScreen() {
       const currentSleepState = buddyState.isSleeping;
       const now = new Date();
 
-      // Force a stats update before changing sleep state
       await updateBuddyStats(true);
 
       if (currentSleepState) {
-        // Waking up - calculate everything before update
         const sleepStartTime = new Date(buddyState.sleepStartTime || now);
         const today = now.toDateString();
         const hoursSlept =
@@ -295,7 +276,6 @@ export default function BuddyScreen() {
               100
           ) / 100;
 
-        // Single update call with all changes
         await updateBuddyState({
           isSleeping: false,
           sleepStartTime: null,
@@ -320,7 +300,6 @@ export default function BuddyScreen() {
           )} hours and feels refreshed!`
         );
       } else {
-        // Going to sleep - single update
         await updateBuddyState({
           isSleeping: true,
           sleepStartTime: now.toISOString(),
@@ -330,7 +309,7 @@ export default function BuddyScreen() {
         Alert.alert("Sleep tight!", `${buddyState.name} is now sleeping!`);
       }
     } finally {
-      // Add a small delay before allowing next toggle
+      // add delay before allowing next toggle
       setTimeout(() => setIsTogglingState(false), 500);
     }
   };
@@ -339,10 +318,9 @@ export default function BuddyScreen() {
   const handleSignOut = async () => {
     try {
       console.warn("[Auth] Signing out user");
-      // Just trigger the sign out - the auth state listener in RootLayout will handle navigation
+      // trigger sign out
       await supabase.auth.signOut();
       console.warn("[Auth] User signed out successfully");
-      // Remove direct navigation - let auth state change handle it
     } catch (error) {
       console.error("[Auth] Error signing out:", error);
       Alert.alert("Error", "Failed to sign out. Please try again.");
@@ -405,7 +383,6 @@ export default function BuddyScreen() {
     };
   }, [buddyState, updateBuddyState]);
 
-  // Effects
   useEffect(() => {
     if (!isLoading && !buddyState) {
       console.warn(
@@ -415,12 +392,10 @@ export default function BuddyScreen() {
     }
   }, [isLoading, buddyState, router]);
 
-  // Show loading state
   if (isLoading || !buddyState) {
     return <SplashScreen />;
   }
 
-  // Camera view when taking a picture
   if (cameraVisible) {
     return (
       <FoodCamera
@@ -431,7 +406,6 @@ export default function BuddyScreen() {
     );
   }
 
-  // Processing view when analyzing the image
   if (processingImage) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -448,7 +422,6 @@ export default function BuddyScreen() {
     );
   }
 
-  // Normal buddy view
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -466,10 +439,8 @@ export default function BuddyScreen() {
           </View>
         )}
 
-        {/* Buddy name */}
         {buddyState && <Text style={styles.buddyName}>{buddyState.name}</Text>}
 
-        {/* Status bars */}
         {buddyState && (
           <View style={styles.statusContainer}>
             {/* HP Bar */}
