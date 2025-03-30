@@ -24,12 +24,12 @@ import { supabase } from "../../services/supabase";
 import { useFoodEntryStore } from "../../stores/foodEntryStore";
 
 // constants for game mechanics
-const NORMAL_HP_DECAY = 0.5; // HP points lost per hour normally
-const HUNGRY_HP_DECAY = 1.5; // HP points lost per hour when hungry
-const THIRSTY_HP_DECAY = 1.5; // HP points lost per hour when thirsty
-const HUNGRY_THRESHOLD = 6; // Hours until buddy gets hungry
-const THIRSTY_THRESHOLD = 4; // Hours until buddy gets thirsty
-const ENERGY_DECAY = 0.7; // Energy points lost per hour when awake
+const NORMAL_HP_DECAY = 3.0; // HP points lost per hour normally
+const HUNGRY_HP_DECAY = 10.0; // HP points lost per hour when hungry
+const THIRSTY_HP_DECAY = 3.0; // HP points lost per hour when thirsty
+const HUNGRY_THRESHOLD = 3; // Hours until buddy gets hungry
+const THIRSTY_THRESHOLD = 2; // Hours until buddy gets thirsty
+const ENERGY_DECAY = 1.4; // Energy points lost per hour when awake
 const ENERGY_RECOVERY = 10; // Energy points gained per hour of sleep
 const HEALTHY_FOOD_HP_GAIN = 15; // HP gained for healthy food
 const UNHEALTHY_FOOD_HP_GAIN = 7; // HP gained for unhealthy food
