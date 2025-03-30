@@ -467,150 +467,158 @@ export default function BuddyScreen() {
         )}
 
         {/* Buddy name */}
-        <Text style={styles.buddyName}>{buddyState.name}</Text>
+        {buddyState && <Text style={styles.buddyName}>{buddyState.name}</Text>}
 
         {/* Status bars */}
-        <View style={styles.statusContainer}>
-          {/* HP Bar */}
-          <View style={styles.statusBarWrapper}>
-            <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusLabel}>HUNGER</Text>
-              <Text style={styles.statusValue}>
-                {Math.round(buddyState.hp)}/100
-              </Text>
+        {buddyState && (
+          <View style={styles.statusContainer}>
+            {/* HP Bar */}
+            <View style={styles.statusBarWrapper}>
+              <View style={styles.statusLabelContainer}>
+                <Text style={styles.statusLabel}>HUNGER</Text>
+                <Text style={styles.statusValue}>
+                  {Math.round(buddyState.hp)}/100
+                </Text>
+              </View>
+              <View style={styles.statusBarBackground}>
+                <View
+                  style={[
+                    styles.statusBarFill,
+                    { width: `${buddyState.hp}%`, backgroundColor: "#f39c12" },
+                  ]}
+                />
+              </View>
             </View>
-            <View style={styles.statusBarBackground}>
-              <View
-                style={[
-                  styles.statusBarFill,
-                  { width: `${buddyState.hp}%`, backgroundColor: "#f39c12" },
-                ]}
-              />
-            </View>
-          </View>
 
-          {/* Energy Bar */}
-          <View style={styles.statusBarWrapper}>
-            <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusLabel}>ENERGY</Text>
-              <Text style={styles.statusValue}>
-                {Math.round(buddyState.energy)}/100
-              </Text>
+            {/* Energy Bar */}
+            <View style={styles.statusBarWrapper}>
+              <View style={styles.statusLabelContainer}>
+                <Text style={styles.statusLabel}>ENERGY</Text>
+                <Text style={styles.statusValue}>
+                  {Math.round(buddyState.energy)}/100
+                </Text>
+              </View>
+              <View style={styles.statusBarBackground}>
+                <View
+                  style={[
+                    styles.statusBarFill,
+                    {
+                      width: `${buddyState.energy}%`,
+                      backgroundColor: "#8977b6",
+                    },
+                  ]}
+                />
+              </View>
             </View>
-            <View style={styles.statusBarBackground}>
-              <View
-                style={[
-                  styles.statusBarFill,
-                  {
-                    width: `${buddyState.energy}%`,
-                    backgroundColor: "#8977b6",
-                  },
-                ]}
-              />
-            </View>
-          </View>
 
-          {/* Hydration Bar */}
-          <View style={styles.statusBarWrapper}>
-            <View style={styles.statusLabelContainer}>
-              <Text style={styles.statusLabel}>HYDRATION</Text>
-              <Text style={styles.statusValue}>
-                {Math.round(
-                  ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
-                )}
-                /100
-              </Text>
-            </View>
-            <View style={styles.statusBarBackground}>
-              <View
-                style={[
-                  styles.statusBarFill,
-                  {
-                    width: `${Math.min(
-                      100,
-                      ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
-                    )}%`,
-                    backgroundColor: "#4FC3F7",
-                  },
-                ]}
-              />
+            {/* Hydration Bar */}
+            <View style={styles.statusBarWrapper}>
+              <View style={styles.statusLabelContainer}>
+                <Text style={styles.statusLabel}>HYDRATION</Text>
+                <Text style={styles.statusValue}>
+                  {Math.round(
+                    ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
+                  )}
+                  /100
+                </Text>
+              </View>
+              <View style={styles.statusBarBackground}>
+                <View
+                  style={[
+                    styles.statusBarFill,
+                    {
+                      width: `${Math.min(
+                        100,
+                        ((buddyState.waterConsumed || 0) / WATER_GOAL) * 100
+                      )}%`,
+                      backgroundColor: "#4FC3F7",
+                    },
+                  ]}
+                />
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Buddy image */}
-        <View
-          style={[
-            styles.buddyImageContainer,
-            buddyState.isSleeping && styles.sleepingBuddy,
-          ]}
-        >
-          <Image
-            source={
-              CAT_GIFS[buddyState.imageUrl as keyof typeof CAT_GIFS]?.[
-                buddyState.isSleeping ? "sleep" : "idle"
-              ] || CAT_GIFS.black[buddyState.isSleeping ? "sleep" : "idle"]
-            }
-            style={styles.buddyGif}
-            resizeMode="contain"
-          />
-        </View>
+        {buddyState && (
+          <View
+            style={[
+              styles.buddyImageContainer,
+              buddyState.isSleeping && styles.sleepingBuddy,
+            ]}
+          >
+            <Image
+              source={
+                CAT_GIFS[buddyState.imageUrl as keyof typeof CAT_GIFS]?.[
+                  buddyState.isSleeping ? "sleep" : "idle"
+                ] || CAT_GIFS.black[buddyState.isSleeping ? "sleep" : "idle"]
+              }
+              style={styles.buddyGif}
+              resizeMode="contain"
+            />
+          </View>
+        )}
 
         {/* Action buttons */}
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setCameraVisible(true)}
-          >
-            <Text style={styles.actionText}>FEED</Text>
-          </TouchableOpacity>
+        {buddyState && (
+          <View style={styles.actionContainer}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setCameraVisible(true)}
+            >
+              <Text style={styles.actionText}>FEED</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setWaterModalVisible(true)}
-          >
-            <Text style={styles.actionText}>DRINK</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setWaterModalVisible(true)}
+            >
+              <Text style={styles.actionText}>DRINK</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionButton, isTogglingState && { opacity: 0.5 }]}
-            onPress={handleSleep}
-            disabled={isTogglingState}
-          >
-            <Text style={styles.actionText}>
-              {buddyState.isSleeping ? "WAKE" : "SLEEP"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={[styles.actionButton, isTogglingState && { opacity: 0.5 }]}
+              onPress={handleSleep}
+              disabled={isTogglingState}
+            >
+              <Text style={styles.actionText}>
+                {buddyState.isSleeping ? "WAKE" : "SLEEP"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Today's wellness */}
-        <View style={styles.trackingContainer}>
-          <Text style={styles.trackingTitle}>TODAY'S WELLNESS</Text>
-          <View style={styles.trackingItemsContainer}>
-            <View style={styles.trackingItem}>
-              <Text style={styles.trackingLabel}>SLEEP</Text>
-              <Text style={styles.trackingValue}>
-                {buddyState.lastSleepDate === new Date().toDateString()
-                  ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
-                  : "0h"}
-              </Text>
-            </View>
+        {buddyState && (
+          <View style={styles.trackingContainer}>
+            <Text style={styles.trackingTitle}>TODAY'S WELLNESS</Text>
+            <View style={styles.trackingItemsContainer}>
+              <View style={styles.trackingItem}>
+                <Text style={styles.trackingLabel}>SLEEP</Text>
+                <Text style={styles.trackingValue}>
+                  {buddyState.lastSleepDate === new Date().toDateString()
+                    ? `${buddyState.totalSleepHours?.toFixed(1) || 0}h`
+                    : "0h"}
+                </Text>
+              </View>
 
-            <View style={styles.trackingItem}>
-              <Text style={styles.trackingLabel}>WATER</Text>
-              <Text style={styles.trackingValue}>
-                {buddyState.waterConsumed || 0} CUPS
-              </Text>
-            </View>
+              <View style={styles.trackingItem}>
+                <Text style={styles.trackingLabel}>WATER</Text>
+                <Text style={styles.trackingValue}>
+                  {buddyState.waterConsumed || 0} CUPS
+                </Text>
+              </View>
 
-            <View style={styles.trackingItem}>
-              <Text style={styles.trackingLabel}>STEPS</Text>
-              <Text style={styles.trackingValue}>
-                {isPedometerAvailable ? currentStepCount : "N/A"}
-              </Text>
+              <View style={styles.trackingItem}>
+                <Text style={styles.trackingLabel}>STEPS</Text>
+                <Text style={styles.trackingValue}>
+                  {isPedometerAvailable ? currentStepCount : "N/A"}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Water Modal */}
         <Modal
