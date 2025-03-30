@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   ImageBackground,
   Platform,
   SafeAreaView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
 } from "react-native";
 import { supabase } from "../services/supabase";
 
@@ -26,6 +29,47 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
+
+  // Reset loading state when component mounts
+  useEffect(() => {
+    console.log("[SignUpScreen] Component mounted, resetting loading state");
+    setLoading(false);
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+
+    // Using a longer delay to ensure screen is fully mounted
+    const timer = setTimeout(() => {
+      if (emailInputRef.current) {
+        emailInputRef.current.focus();
+        console.log("[SignUpScreen] Focused email input");
+      }
+    }, 800);
+
+    return () => {
+      clearTimeout(timer);
+      // Clear form fields when component unmounts
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+    };
+  }, []);
+
+  // Add a second attempt to focus after the initial one
+  useEffect(() => {
+    const backupTimer = setTimeout(() => {
+      if (emailInputRef.current) {
+        emailInputRef.current.focus();
+        console.log("[SignUpScreen] Backup focus on email input");
+      }
+    }, 1500);
+
+    return () => clearTimeout(backupTimer);
+  }, []);
+
   const handleSignUp = async () => {
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
@@ -37,14 +81,23 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
       return;
     }
 
+    // Prevent multiple attempts if already loading
+    if (loading) return;
+
     try {
       setLoading(true);
+      console.log("[SignUpScreen] Signing up with email:", email);
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
+
+      console.log(
+        "[SignUpScreen] Sign up successful, signing in automatically"
+      );
 
       // Sign in immediately after successful sign up
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -54,72 +107,124 @@ const SignUpScreen: React.FC<SignUpScreenProps> = ({
 
       if (signInError) throw signInError;
 
+      console.log("[SignUpScreen] Sign in successful, calling onAuthSuccess");
+
+      // Important: Don't set loading to false here as we're transitioning to another screen
       onAuthSuccess();
     } catch (error: any) {
       Alert.alert("Error", error.message || "An error occurred");
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>SIGN UP</Text>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>SIGN UP</Text>
+      </View>
+
+      <View style={styles.fixedContentContainer}>
+        <View style={styles.formContainer}>
+          <Text style={styles.label}>EMAIL</Text>
+          <TextInput
+            ref={emailInputRef}
+            key="signup-email-input-static"
+            style={styles.input}
+            placeholder="Enter your email address"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
+            placeholderTextColor="#666"
+            editable={true}
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
+            returnKeyType="next"
+            autoCorrect={false}
+            blurOnSubmit={false}
+            spellCheck={false}
+          />
+
+          <Text style={styles.label}>PASSWORD</Text>
+          <TextInput
+            ref={passwordInputRef}
+            key="signup-password-input-static"
+            style={styles.input}
+            placeholder="Create a password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="new-password"
+            textContentType="oneTimeCode"
+            placeholderTextColor="#666"
+            editable={true}
+            onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+            returnKeyType="next"
+            autoCorrect={false}
+            blurOnSubmit={false}
+            contextMenuHidden={true}
+            spellCheck={false}
+            keyboardType={
+              Platform.OS === "ios" ? "default" : "visible-password"
+            }
+          />
+
+          <Text style={styles.label}>CONFIRM PASSWORD</Text>
+          <TextInput
+            ref={confirmPasswordInputRef}
+            key="signup-confirm-input-static"
+            style={styles.input}
+            placeholder="Confirm your password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoComplete="new-password"
+            textContentType="oneTimeCode"
+            placeholderTextColor="#666"
+            editable={true}
+            onSubmitEditing={handleSignUp}
+            returnKeyType="done"
+            autoCorrect={false}
+            blurOnSubmit={false}
+            contextMenuHidden={true}
+            spellCheck={false}
+            keyboardType={
+              Platform.OS === "ios" ? "default" : "visible-password"
+            }
+          />
+
+          <TouchableOpacity
+            style={[styles.createButton, loading && styles.disabledButton]}
+            onPress={handleSignUp}
+            disabled={loading}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.createButtonText}>
+              {loading ? "CREATING..." : "CREATE ACCOUNT"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.contentContainer}>
-          <View style={styles.formContainer}>
-            <Text style={styles.label}>EMAIL</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email addres"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              placeholderTextColor="#666"
-            />
-
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Create a password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="new-password"
-              placeholderTextColor="#666"
-            />
-
-            <Text style={styles.label}>CONFIRM PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoComplete="new-password"
-              placeholderTextColor="#666"
-            />
-
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={handleSignUp}
-              disabled={loading}
-            >
-              <Text style={styles.createButtonText}>CREATE ACCOUNT</Text>
-            </TouchableOpacity>
-          </View>
-
+        <View style={styles.bottomContainer}>
           <Text style={styles.signInText}>ALREADY HAVE AN ACCOUNT?</Text>
-          <TouchableOpacity style={styles.signInButton} onPress={onSignInPress}>
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={onSignInPress}
+            disabled={loading}
+          >
             <Text style={styles.signInButtonText}>SIGN IN</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Dismiss keyboard when tapping anywhere else */}
+      <TouchableWithoutFeedback
+        style={styles.keyboardDismiss}
+        onPress={Keyboard.dismiss}
+      >
+        <View style={styles.keyboardDismiss} />
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
@@ -130,15 +235,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#3AA385", // pixel-green
     paddingTop: Platform.OS === "ios" ? 47 : 0, // Account for dynamic island
   },
-  container: {
-    flex: 1,
-    backgroundColor: "#3AA385", // pixel-green
-  },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     backgroundColor: "#F7F5E1", // pixel-cream
     borderBottomWidth: 4,
     borderBottomColor: "#000000",
-    padding: 12,
+    paddingTop: 65,
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -149,21 +255,26 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: "Minecraft",
     fontWeight: "400",
     textAlign: "center",
     color: "#000000",
   },
-  contentContainer: {
-    flex: 1,
-    justifyContent: "center",
+  fixedContentContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "flex-start",
     alignItems: "center",
-    padding: 16,
     backgroundColor: "#3AA385", // pixel-green
+    paddingTop: Platform.OS === "ios" ? 140 : 120,
+    paddingBottom: 0,
   },
   formContainer: {
-    width: "100%",
+    width: "90%",
     maxWidth: 400,
     backgroundColor: "#FFFCEE", // pixel-cream-light
     borderWidth: 4,
@@ -225,7 +336,7 @@ const styles = StyleSheet.create({
     fontFamily: "Minecraft",
     fontSize: 14,
     fontWeight: "400",
-    marginBottom: 8,
+    marginRight: 10,
   },
   signInButton: {
     backgroundColor: "#8977b6", // pixel-purple
@@ -248,6 +359,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "400",
     textAlign: "center",
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  bottomContainer: {
+    marginTop: 20,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+  },
+  keyboardDismiss: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: -1,
   },
 });
 

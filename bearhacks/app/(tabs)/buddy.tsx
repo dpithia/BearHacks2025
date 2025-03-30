@@ -317,10 +317,28 @@ export default function BuddyScreen() {
   // Add handleSignOut function back
   const handleSignOut = async () => {
     try {
-      console.warn("[Auth] Signing out user");
+      console.log("[Auth] Starting sign-out process");
+
+      // Add additional debugging log to track state just before sign-out
+      console.log("[Auth] Current app state before sign-out:", {
+        hasInitializedStats,
+        isUpdatingStats,
+        isTogglingState,
+        buddyStateExists: !!buddyState,
+      });
+
       // trigger sign out
-      await supabase.auth.signOut();
-      console.warn("[Auth] User signed out successfully");
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("[Auth] Error during sign-out:", error);
+        throw error;
+      }
+
+      console.log(
+        "[Auth] User signed out successfully, redirecting to auth screen"
+      );
+
+      // The auth state change listener in _layout.tsx will handle the navigation
     } catch (error) {
       console.error("[Auth] Error signing out:", error);
       Alert.alert("Error", "Failed to sign out. Please try again.");

@@ -10,37 +10,41 @@ import { router } from "expo-router";
 
 export default function Auth() {
   const [showSignUp, setShowSignUp] = useState(false);
+  const [isAuthProcessing, setIsAuthProcessing] = useState(false);
+
+  const handleAuthSuccess = async () => {
+    // Set a flag to prevent multiple loading screens
+    setIsAuthProcessing(true);
+
+    console.warn("[Auth] Authentication success");
+    try {
+      await cleanupDuplicateBuddies();
+      const { hasBuddy } = await checkExistingBuddy();
+      console.warn("[Auth] Buddy check:", { hasBuddy });
+
+      // Replace route directly without showing splash
+      router.replace(hasBuddy ? "/(tabs)/buddy" : "/(tabs)");
+    } catch (error) {
+      console.error("[Auth] Error in buddy check:", error);
+      setIsAuthProcessing(false);
+    }
+  };
+
+  // If auth is processing, show a blank screen to prevent flashes
+  if (isAuthProcessing) {
+    return <View style={{ flex: 1, backgroundColor: "#3AA385" }} />;
+  }
 
   return (
     <View style={{ flex: 1 }}>
       {showSignUp ? (
         <SignUpScreen
-          onAuthSuccess={async () => {
-            console.warn("[Auth] Sign up success");
-            try {
-              await cleanupDuplicateBuddies();
-              const { hasBuddy } = await checkExistingBuddy();
-              console.warn("[Auth] Sign up buddy check:", { hasBuddy });
-              router.replace(hasBuddy ? "/(tabs)/buddy" : "/(tabs)");
-            } catch (error) {
-              console.error("[Auth] Error in signup buddy check:", error);
-            }
-          }}
+          onAuthSuccess={handleAuthSuccess}
           onSignInPress={() => setShowSignUp(false)}
         />
       ) : (
         <AuthScreen
-          onAuthSuccess={async () => {
-            console.warn("[Auth] Sign in success");
-            try {
-              await cleanupDuplicateBuddies();
-              const { hasBuddy } = await checkExistingBuddy();
-              console.warn("[Auth] Sign in buddy check:", { hasBuddy });
-              router.replace(hasBuddy ? "/(tabs)/buddy" : "/(tabs)");
-            } catch (error) {
-              console.error("[Auth] Error in signin buddy check:", error);
-            }
-          }}
+          onAuthSuccess={handleAuthSuccess}
           onSignUpPress={() => setShowSignUp(true)}
         />
       )}
