@@ -9,6 +9,7 @@ import {
 } from "../services/buddyService";
 import * as SecureStore from "expo-secure-store";
 import { useFonts } from "expo-font";
+import { useFoodEntryStore } from "../stores/foodEntryStore";
 
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
@@ -16,6 +17,7 @@ export default function RootLayout() {
   const [isCheckingBuddy, setIsCheckingBuddy] = useState(false);
   const [forceShowSplash, setForceShowSplash] = useState(true);
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
+  const clearEntries = useFoodEntryStore((state) => state.clearEntries);
 
   const [fontsLoaded] = useFonts({
     Minecraft: require("../assets/fonts/Minecraft.ttf"),
@@ -81,6 +83,9 @@ export default function RootLayout() {
 
         if (hasSession) {
           try {
+            // Clear food entries on sign in
+            clearEntries();
+
             // Skip buddy cleanup during sign-in for faster transitions
             const { hasBuddy } = await checkExistingBuddy();
             console.log("[Auth] Buddy check result:", { hasBuddy });
