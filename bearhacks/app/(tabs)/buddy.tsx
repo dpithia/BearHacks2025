@@ -210,7 +210,7 @@ export default function BuddyScreen() {
 
       Alert.alert(
         analysis.isHealthy ? "Healthy Food! 🥗" : "Unhealthy Food! 🍔",
-        `I think this is: ${analysis.labels?.join(", ") || "unknown food"}\n\n${
+        `I think this is: ${analysis.labels?.[0] || "unknown food"}\n\n${
           analysis.isHealthy
             ? `Great choice! ${buddyState.name} is happy about this healthy meal!`
             : `${buddyState.name} would prefer something healthier next time!`

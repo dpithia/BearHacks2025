@@ -56,14 +56,11 @@ const FoodEntryCard = ({ entry }: { entry: FoodEntry }) => (
         })}
       </ThemedText>
       <View style={styles.labels}>
-        {entry.labels.slice(0, 2).map((label, index) => (
-          <ThemedText
-            key={index}
-            style={[styles.label, { fontFamily: "Minecraft" }]}
-          >
-            {label}
+        {entry.labels.length > 0 && (
+          <ThemedText style={[styles.label, { fontFamily: "Minecraft" }]}>
+            {entry.labels[0]}
           </ThemedText>
-        ))}
+        )}
       </View>
     </View>
     <View style={styles.entryConfidence}>

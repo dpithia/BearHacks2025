@@ -20,7 +20,6 @@ export interface FoodAnalysisResult {
  */
 export class FoodAnalyzer {
   private static healthyFoodKeywords = [
-    // Original keywords retained
     "vegetable",
     "fruit",
     "salad",
@@ -30,8 +29,6 @@ export class FoodAnalyzer {
     "steamed",
     "fresh",
     "whole grain",
-
-    // Healthy foods from Clarifai taxonomy
     "acorn squash",
     "almond",
     "amaranth",
@@ -299,7 +296,7 @@ export class FoodAnalyzer {
     "processed",
 
     // Unhealthy foods from Clarifai taxonomy
-    "apple pie",
+
     "bacon",
     "bagel",
     "baguette",
@@ -333,10 +330,10 @@ export class FoodAnalyzer {
     "calamari",
     "camembert",
     "canape",
-    "candy apple",
+
     "candy bar",
     "cannoli",
-    "caramel apple",
+
     "carpaccio",
     "carrot cake",
     "casserole",
@@ -641,28 +638,28 @@ export class FoodAnalyzer {
       let healthyScore = 0;
       let unhealthyScore = 0;
 
-      labels.forEach((label: string) => {
-        if (
-          this.healthyFoodKeywords.some((keyword) =>
-            label.toLowerCase().includes(keyword)
-          )
-        ) {
-          healthyScore += 1;
-        }
-        if (
-          this.unhealthyFoodKeywords.some((keyword) =>
-            label.toLowerCase().includes(keyword)
-          )
-        ) {
-          unhealthyScore += 1;
-        }
-      });
+      // Only use the most confident label for health calculation
+      const mostConfidentLabel = labels[0];
+      if (
+        this.healthyFoodKeywords.some((keyword) =>
+          mostConfidentLabel.toLowerCase().includes(keyword)
+        )
+      ) {
+        healthyScore += 1;
+      }
+      if (
+        this.unhealthyFoodKeywords.some((keyword) =>
+          mostConfidentLabel.toLowerCase().includes(keyword)
+        )
+      ) {
+        unhealthyScore += 1;
+      }
 
       const isHealthy = healthyScore > unhealthyScore;
       const confidence = concepts[0]?.value || 0;
 
       console.log("Food Analysis Results:", {
-        labels: labels.slice(0, 5),
+        label: mostConfidentLabel,
         healthyScore,
         unhealthyScore,
         isHealthy,
@@ -671,7 +668,7 @@ export class FoodAnalyzer {
 
       return {
         isHealthy,
-        labels: labels.slice(0, 5), // Top 5 labels
+        labels: [mostConfidentLabel], // Only return the most confident label
         confidence,
       };
     } catch (error) {
