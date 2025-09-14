@@ -1,13 +1,24 @@
 # NineLives 🐱
-
 A virtual pet mobile application built with React Native and Expo. NineLives helps users track daily health habits like hydration, nutrition, and sleep through an engaging buddy care system.
 
 ## 🌟 Overview
-
 NineLives is a health companion app that uses a virtual pet (your "buddy") to encourage healthy habits. Take photos of your meals, track your water intake, log your sleep, and watch your buddy thrive as you maintain good habits!
 
-## ✨ Features
+## 📱 App Screenshots
 
+<div align="center">
+  <img src="gallery.jpg" width="250" alt="NineLives App Screenshot"/>
+  <img src="gallery (1).jpg" width="250" alt="NineLives App Screenshot"/>
+  <img src="gallery (2).jpg" width="250" alt="NineLives App Screenshot"/>
+</div>
+
+<div align="center">
+  <img src="gallery (3).jpg" width="250" alt="NineLives App Screenshot"/>
+  <img src="original.png" width="250" alt="NineLives App Screenshot"/>
+  <img src="original (1).png" width="250" alt="NineLives App Screenshot"/>
+</div>
+
+## ✨ Features
 - **🐱 Virtual Pet System**: Create and care for your custom buddy
 - **👤 User Authentication**: Secure login and registration via Supabase
 - **🥗 Smart Meal Tracking**: Take photos of your food to feed your buddy (powered by Clarifai AI)
@@ -18,7 +29,6 @@ NineLives is a health companion app that uses a virtual pet (your "buddy") to en
 - **☁️ Cloud Sync**: Your buddy's status syncs across devices with Supabase
 
 ## 🚀 Tech Stack
-
 - **Framework**: React Native + Expo
 - **Backend**: Supabase for authentication and database
 - **Navigation**: Expo Router
@@ -34,7 +44,6 @@ NineLives is a health companion app that uses a virtual pet (your "buddy") to en
 - **UI Components**: Custom styled components
 
 ## 📱 App Screens
-
 1. **Authentication**: Login and signup screens
 2. **Splash Screen**: Animated loading screen
 3. **Create Buddy**: Customize your health companion
@@ -43,42 +52,32 @@ NineLives is a health companion app that uses a virtual pet (your "buddy") to en
 6. **Social Features**: Share your buddy with friends
 
 ## 🛠️ Installation
-
 1. Clone the repository:
-
 ```bash
 git clone https://github.com/yourusername/NineLives.git
 cd NineLives
 ```
-
 2. Install dependencies:
-
 ```bash
 npm install
 ```
-
 3. Set up environment variables: Create a `.env` file in the root directory with your Supabase, Clarifai, and Perplexity credentials.
-
 4. Start the development server:
-
 ```bash
 npx expo start
 ```
 
 ## 📱 Running the App
-
 - **iOS**: `npx expo run:ios`
 - **Android**: `npx expo run:android`
 - **Using Expo Go**: Scan the QR code with the Expo Go app
 
 ## 🔮 Future Enhancements using Perplexity
-
 - **Health Insights**: Personalized recommendations
 - **Achievements**: Unlock rewards for consistent healthy habits
 - **Weekly Reports**: Track your health trends over time
 
 ## 📦 Dependencies
-
 - React Native
 - Expo
 - Supabase
@@ -90,15 +89,12 @@ npx expo start
 - Perplexity API
 
 ## 📝 License
-
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👥 Contributing
-
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 🙏 Acknowledgements
-
 - Built for BearHacks 2025
 - Inspired by classic virtual pets and modern health tracking apps
 - Special thanks to all the open-source libraries that made this possible
